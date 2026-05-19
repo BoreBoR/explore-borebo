@@ -1,5 +1,6 @@
 import 'package:benjii/modules/landing/view/widget/pin_input_button.dart';
 import 'package:benjii/modular/home.dart';
+import 'package:benjii/modules/landing/controller/pin_gate_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:pinput/pinput.dart';
@@ -24,6 +25,12 @@ class _PinWidgetState extends State<PinWidget> {
   final _formKey = GlobalKey<FormState>();
   final _pinController = TextEditingController();
   String? _errorText;
+
+  @override
+  void initState() {
+    super.initState();
+    PinGateController.lock();
+  }
 
   @override
   void dispose() {
@@ -53,7 +60,8 @@ class _PinWidgetState extends State<PinWidget> {
       _errorText = errorText;
     });
 
-    if (errorText == null && (_formKey.currentState?.validate() ?? false)) {
+    if (errorText == null) {
+      PinGateController.unlock();
       Modular.to.navigate(HomePageType.homepage.path);
     }
   }

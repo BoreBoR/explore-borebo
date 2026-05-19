@@ -7,13 +7,13 @@ extension LandingPageTypePath on LandingPageType {
   String get path {
     switch (this) {
       case LandingPageType.landingScreen:
-        return LandingModule.baseRoute;
+        return '${LandingModule.baseRoute}/';
     }
   }
 }
 
 class LandingModule extends Module {
-  static const baseRoute = '/';
+  static const baseRoute = '/benji-message';
 
   @override
   void routes(RouteManager r) {

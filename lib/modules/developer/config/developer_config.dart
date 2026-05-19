@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 abstract final class DeveloperConfig {
-  static const enabled = true;
+  static const enabled = kDebugMode;
 }
