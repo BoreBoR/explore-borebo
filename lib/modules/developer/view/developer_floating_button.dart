@@ -1,4 +1,6 @@
 import 'package:benjii/modular/home.dart';
+import 'package:benjii/modular/landing.dart';
+import 'package:benjii/modular/mode_select.dart';
 import 'package:benjii/modular/timer_together.dart';
 import 'package:benjii/modules/developer/config/developer_config.dart';
 import 'package:benjii/modules/developer/controller/developer_navigation_controller.dart';
@@ -34,6 +36,7 @@ class _DeveloperFloatingButtonState extends State<DeveloperFloatingButton> {
             if (_isOpen) ...[
               _DeveloperMenu(
                 onNavigate: _handleNavigate,
+                onNavigateModeSelect: _handleNavigateModeSelect,
                 onNavigateTimerTogether: _handleNavigateTimerTogether,
               ),
               const SizedBox(height: 12),
@@ -65,12 +68,17 @@ class _DeveloperFloatingButtonState extends State<DeveloperFloatingButton> {
     setState(() => _isOpen = false);
 
     if (storyPageIndex == null) {
-      Modular.to.navigate('/');
+      Modular.to.navigate(LandingPageType.landingScreen.path);
       return;
     }
 
     DeveloperNavigationController.instance.requestStoryPage(storyPageIndex);
     Modular.to.navigate(HomePageType.homepage.path);
+  }
+
+  void _handleNavigateModeSelect() {
+    setState(() => _isOpen = false);
+    Modular.to.navigate(ModeSelectPageType.modeSelect.path);
   }
 
   void _handleNavigateTimerTogether() {
@@ -82,10 +90,12 @@ class _DeveloperFloatingButtonState extends State<DeveloperFloatingButton> {
 class _DeveloperMenu extends StatelessWidget {
   const _DeveloperMenu({
     required this.onNavigate,
+    required this.onNavigateModeSelect,
     required this.onNavigateTimerTogether,
   });
 
   final ValueChanged<int?> onNavigate;
+  final VoidCallback onNavigateModeSelect;
   final VoidCallback onNavigateTimerTogether;
 
   @override
@@ -114,9 +124,16 @@ class _DeveloperMenu extends StatelessWidget {
             ),
             ListTile(
               dense: true,
+              leading: const Icon(Icons.apps_rounded),
+              title: const Text('Mode select'),
+              subtitle: const Text('Go back to the first screen'),
+              onTap: onNavigateModeSelect,
+            ),
+            ListTile(
+              dense: true,
               leading: const Icon(Icons.lock_outline_rounded),
               title: const Text('PIN page'),
-              subtitle: const Text('Go back to the first screen'),
+              subtitle: const Text('Open Benji Message PIN'),
               onTap: () => onNavigate(null),
             ),
             ListTile(
