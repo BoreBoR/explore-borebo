@@ -7,7 +7,7 @@ enum StoryPageKind {
   gallery,
   letter,
   wish,
-  restart,
+  timeTogether,
 }
 
 class StoryPageData {
@@ -18,6 +18,7 @@ class StoryPageData {
     required this.icon,
     this.kind = StoryPageKind.standard,
     this.items = const [],
+    this.imageAssets = const [],
     this.footer,
   });
 
@@ -27,5 +28,6 @@ class StoryPageData {
   final IconData icon;
   final StoryPageKind kind;
   final List<String> items;
+  final List<String> imageAssets;
   final String? footer;
 }

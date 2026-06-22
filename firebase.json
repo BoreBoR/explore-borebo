@@ -1,0 +1,45 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "benjii-project",
+          "appId": "1:163340677850:android:00929c77b5fd389d352be3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "benjii-project",
+          "appId": "1:163340677850:ios:d4227815d20896d0352be3",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "macos": {
+        "default": {
+          "projectId": "benjii-project",
+          "appId": "1:163340677850:ios:d4227815d20896d0352be3",
+          "uploadDebugSymbols": false,
+          "fileOutput": "macos/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "benjii-project",
+          "configurations": {
+            "android": "1:163340677850:android:00929c77b5fd389d352be3",
+            "ios": "1:163340677850:ios:d4227815d20896d0352be3",
+            "macos": "1:163340677850:ios:d4227815d20896d0352be3",
+            "web": "1:163340677850:web:c1a6610081860637352be3",
+            "windows": "1:163340677850:web:e950f4db31e49a85352be3"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

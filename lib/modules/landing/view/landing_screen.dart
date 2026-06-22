@@ -1,6 +1,8 @@
 import 'package:benjii/modules/landing/view/widget/pin_input_button.dart';
 import 'package:benjii/modular/home.dart';
 import 'package:benjii/modules/landing/controller/pin_gate_controller.dart';
+import 'package:benjii/util/app_background.dart';
+import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:pinput/pinput.dart';
@@ -10,7 +12,10 @@ class LandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: const SafeArea(child: PinWidget()));
+    return const Scaffold(
+      backgroundColor: Colors.transparent,
+      body: AppBackground(child: SafeArea(child: PinWidget())),
+    );
   }
 }
 
@@ -102,9 +107,16 @@ class _PinWidgetState extends State<PinWidget> {
         color: colorScheme.onSurface,
       ),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border.all(color: colorScheme.outlineVariant),
+        color: colorScheme.surface.withValues(alpha: 0.9),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.12)),
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppColor.primaryBlueDark.withValues(alpha: 0.05),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
     );
     final focusedPinTheme = defaultPinTheme.copyDecorationWith(
@@ -130,55 +142,90 @@ class _PinWidgetState extends State<PinWidget> {
           child: Column(
             children: [
               const Spacer(flex: 2),
-              ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: contentWidth),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'For someone special',
-                      textAlign: TextAlign.center,
-                      style: textTheme.displaySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Enter the secret date to open your surprise',
-                      textAlign: TextAlign.center,
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Pinput(
-                      key: const ValueKey('pin-display'),
-                      controller: _pinController,
-                      length: 6,
-                      useNativeKeyboard: false,
-                      showCursor: false,
-                      enableInteractiveSelection: false,
-                      toolbarEnabled: false,
-                      defaultPinTheme: defaultPinTheme,
-                      focusedPinTheme: focusedPinTheme,
-                      submittedPinTheme: submittedPinTheme,
-                      errorPinTheme: errorPinTheme,
-                      forceErrorState: _errorText != null,
-                      errorText: _errorText,
-                      errorBuilder: (errorText, _) {
-                        if (errorText == null) {
-                          return const SizedBox.shrink();
-                        }
-
-                        return Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(errorText, style: errorTextStyle),
-                        );
-                      },
-                      pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
-                      validator: _validatePin,
+              Container(
+                width: contentWidth,
+                decoration: BoxDecoration(
+                  color: colorScheme.surface.withValues(alpha: 0.82),
+                  border: Border.all(
+                    color: colorScheme.outline.withValues(alpha: 0.7),
+                  ),
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColor.primaryBlueDark.withValues(alpha: 0.08),
+                      blurRadius: 32,
+                      offset: const Offset(0, 18),
                     ),
                   ],
+                ),
+                padding: const EdgeInsets.fromLTRB(22, 26, 22, 24),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentWidth),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppColor.blush,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.favorite_rounded,
+                            color: AppColor.blushDeep,
+                            size: 34,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'For someone special',
+                        textAlign: TextAlign.center,
+                        style: textTheme.displaySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Enter the secret date to open your surprise',
+                        textAlign: TextAlign.center,
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Pinput(
+                        key: const ValueKey('pin-display'),
+                        controller: _pinController,
+                        length: 6,
+                        useNativeKeyboard: false,
+                        showCursor: false,
+                        enableInteractiveSelection: false,
+                        toolbarEnabled: false,
+                        defaultPinTheme: defaultPinTheme,
+                        focusedPinTheme: focusedPinTheme,
+                        submittedPinTheme: submittedPinTheme,
+                        errorPinTheme: errorPinTheme,
+                        forceErrorState: _errorText != null,
+                        errorText: _errorText,
+                        errorBuilder: (errorText, _) {
+                          if (errorText == null) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(errorText, style: errorTextStyle),
+                          );
+                        },
+                        pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+                        validator: _validatePin,
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const Spacer(flex: 3),

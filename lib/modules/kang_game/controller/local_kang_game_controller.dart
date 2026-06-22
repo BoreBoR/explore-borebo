@@ -1,0 +1,300 @@
+import 'dart:math';
+
+import 'package:benjii/modules/kang_game/model/kang_card.dart';
+import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
+import 'package:benjii/modules/kang_game/model/kang_rules.dart';
+
+class LocalKangGameController {
+  LocalKangGameController({Random? random}) : _random = random ?? Random();
+
+  final Random _random;
+
+  KangRoundState startRound(KangRoundState previous) {
+    final deck = KangRules.shuffledDeck(_random);
+    final youHand = deck.take(5).toList();
+    final benjiHand = deck.skip(5).take(5).toList();
+    final drawPile = deck.skip(11).toList();
+    final discardPile = [deck[10]];
+
+    final previousPlayers = {
+      for (final player in previous.players) player.id: player,
+    };
+    final players = [
+      KangPlayerState(
+        id: 'you',
+        name: 'You',
+        hand: youHand,
+        gamePoints: previousPlayers['you']?.gamePoints ?? 0,
+      ),
+      KangPlayerState(
+        id: 'benji',
+        name: 'Benji',
+        hand: benjiHand,
+        gamePoints: previousPlayers['benji']?.gamePoints ?? 0,
+      ),
+    ];
+
+    final baseState = KangRoundState(
+      players: players,
+      drawPile: drawPile,
+      discardPile: discardPile,
+      currentTurnIndex: 0,
+      roundNumber: previous.roundNumber + 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.start,
+    );
+
+    final winOutPlayers = players
+        .where((player) => KangRules.hasWinOut(player.hand))
+        .toList();
+    if (winOutPlayers.isEmpty) {
+      return baseState.copyWith(
+        message: 'Round ${baseState.roundNumber} started.',
+      );
+    }
+    if (winOutPlayers.length > 1) {
+      return baseState.copyWith(
+        status: KangRoundStatus.finished,
+        winReason: KangWinReason.draw,
+        message: 'Both players have Win Out. Round is a draw.',
+      );
+    }
+
+    final winner = winOutPlayers.single;
+    return _finishRound(
+      baseState,
+      winnerId: winner.id,
+      reason: KangWinReason.winOut,
+      message: '${winner.name} wins out immediately.',
+    );
+  }
+
+  KangRoundState declareKang(KangRoundState state, String declarerId) {
+    _requirePlaying(state);
+    if (state.currentPlayer?.id != declarerId) {
+      throw StateError('Only the current player can declare Kang.');
+    }
+    if (state.turnPhase != KangTurnPhase.start) {
+      throw StateError('Kang can only be declared at the start of turn.');
+    }
+
+    final winnerId = KangRules.kangWinnerId(
+      players: state.players,
+      declarerId: declarerId,
+    );
+    final winner = state.players.firstWhere((player) => player.id == winnerId);
+
+    return _finishRound(
+      state,
+      winnerId: winnerId,
+      reason: KangWinReason.kang,
+      message: '${winner.name} wins by Kang.',
+    );
+  }
+
+  KangRoundState drawForCurrentPlayer(KangRoundState state) {
+    _requirePlaying(state);
+    if (state.turnPhase != KangTurnPhase.start) {
+      throw StateError('Player already drew this turn.');
+    }
+    if (state.drawPile.isEmpty) {
+      throw StateError('Draw pile is empty.');
+    }
+
+    final current = state.currentPlayer;
+    if (current == null) {
+      throw StateError('No current player.');
+    }
+
+    final drawPile = [...state.drawPile];
+    final drawnCard = drawPile.removeLast();
+    final updatedPlayer = current.copyWith(hand: [...current.hand, drawnCard]);
+    final players = state.players
+        .map((player) => player.id == current.id ? updatedPlayer : player)
+        .toList();
+
+    return state.copyWith(
+      players: players,
+      drawPile: drawPile,
+      turnPhase: KangTurnPhase.drew,
+      lastDrawnCard: drawnCard,
+      message: '${current.name} drew a card. Choose one card to drop.',
+    );
+  }
+
+  KangRoundState dropCard(KangRoundState state, KangCard card) {
+    return dropCards(state, [card]);
+  }
+
+  KangRoundState dropCards(KangRoundState state, List<KangCard> cards) {
+    _requirePlaying(state);
+    if (state.turnPhase != KangTurnPhase.drew) {
+      throw StateError('Draw before dropping a card.');
+    }
+    if (cards.isEmpty) {
+      throw StateError('Choose at least one card to drop.');
+    }
+
+    final current = state.currentPlayer;
+    if (current == null) {
+      throw StateError('No current player.');
+    }
+    final firstRank = cards.first.rank;
+    for (final card in cards) {
+      if (card.rank != firstRank) {
+        throw StateError('Drop cards must have the same rank.');
+      }
+      if (!current.hand.contains(card)) {
+        throw StateError('${current.name} does not have ${card.id}.');
+      }
+    }
+
+    final opponentIndex = _nextTurnIndex(state);
+    final opponent = state.players[opponentIndex];
+    final currentHand = [...current.hand];
+    for (final card in cards) {
+      currentHand.remove(card);
+    }
+    final discardPile = [...state.discardPile, ...cards];
+    final updatedCurrent = current.copyWith(hand: currentHand);
+    var nextTurnIndex = opponentIndex;
+    final droppedLabels = cards.map((card) => card.id).join(', ');
+    var message =
+        '${current.name} dropped $droppedLabels. ${opponent.name} turn.';
+    var turnPhase = KangTurnPhase.start;
+    KangCard? pendingDroppedCard;
+    int? pendingDropperIndex;
+
+    final matchingCard = _firstCardOfRank(opponent.hand, firstRank);
+    if (matchingCard != null) {
+      nextTurnIndex = opponentIndex;
+      turnPhase = KangTurnPhase.respondingToDrop;
+      pendingDroppedCard = cards.first;
+      pendingDropperIndex = state.currentTurnIndex;
+      message =
+          '${current.name} dropped $droppedLabels. '
+          '${opponent.name} has a matching rank and must choose it.';
+    }
+
+    final players = state.players.map((player) {
+      if (player.id == updatedCurrent.id) {
+        return updatedCurrent;
+      }
+      return player;
+    }).toList();
+
+    return state.copyWith(
+      players: players,
+      discardPile: discardPile,
+      currentTurnIndex: nextTurnIndex,
+      turnPhase: turnPhase,
+      pendingDroppedCard: pendingDroppedCard,
+      pendingDropperIndex: pendingDropperIndex,
+      clearPendingDrop: pendingDroppedCard == null,
+      clearLastDrawnCard: true,
+      message: message,
+    );
+  }
+
+  KangRoundState respondToDroppedCard(KangRoundState state, KangCard card) {
+    return respondToDroppedCards(state, [card]);
+  }
+
+  KangRoundState respondToDroppedCards(
+    KangRoundState state,
+    List<KangCard> cards,
+  ) {
+    _requirePlaying(state);
+    if (state.turnPhase != KangTurnPhase.respondingToDrop) {
+      throw StateError('There is no dropped card to respond to.');
+    }
+    if (cards.isEmpty) {
+      throw StateError('Choose at least one matching card.');
+    }
+
+    final pendingDroppedCard = state.pendingDroppedCard;
+    final pendingDropperIndex = state.pendingDropperIndex;
+    final current = state.currentPlayer;
+    if (pendingDroppedCard == null || pendingDropperIndex == null) {
+      throw StateError('Missing dropped card response state.');
+    }
+    if (current == null) {
+      throw StateError('No current player.');
+    }
+    for (final card in cards) {
+      if (card.rank != pendingDroppedCard.rank) {
+        throw StateError('Choose a matching ${pendingDroppedCard.rank.label}.');
+      }
+      if (!current.hand.contains(card)) {
+        throw StateError('${current.name} does not have ${card.id}.');
+      }
+    }
+
+    final currentHand = [...current.hand];
+    for (final card in cards) {
+      currentHand.remove(card);
+    }
+    final updatedCurrent = current.copyWith(hand: currentHand);
+    final players = state.players
+        .map(
+          (player) => player.id == updatedCurrent.id ? updatedCurrent : player,
+        )
+        .toList();
+    final dropper = state.players[pendingDropperIndex];
+
+    return state.copyWith(
+      players: players,
+      discardPile: [...state.discardPile, ...cards],
+      currentTurnIndex: pendingDropperIndex,
+      turnPhase: KangTurnPhase.start,
+      clearPendingDrop: true,
+      clearLastDrawnCard: true,
+      message:
+          '${current.name} matched ${cards.map((card) => card.id).join(', ')}. ${dropper.name} plays again.',
+    );
+  }
+
+  KangRoundState _finishRound(
+    KangRoundState state, {
+    required String winnerId,
+    required KangWinReason reason,
+    required String message,
+  }) {
+    final players = state.players.map((player) {
+      if (player.id != winnerId) {
+        return player;
+      }
+      return player.copyWith(
+        gamePoints:
+            player.gamePoints + KangRules.pointsForWinningHand(player.hand),
+      );
+    }).toList();
+
+    return state.copyWith(
+      players: players,
+      status: KangRoundStatus.finished,
+      winnerId: winnerId,
+      winReason: reason,
+      message: message,
+    );
+  }
+
+  void _requirePlaying(KangRoundState state) {
+    if (state.status != KangRoundStatus.playing) {
+      throw StateError('Round is not playing.');
+    }
+  }
+
+  int _nextTurnIndex(KangRoundState state) {
+    return (state.currentTurnIndex + 1) % state.players.length;
+  }
+
+  KangCard? _firstCardOfRank(List<KangCard> cards, KangRank rank) {
+    for (final card in cards) {
+      if (card.rank == rank) {
+        return card;
+      }
+    }
+    return null;
+  }
+}
