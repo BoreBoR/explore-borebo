@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "163340677850",
+    "project_id": "benjii-project",
+    "storage_bucket": "benjii-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:163340677850:android:00929c77b5fd389d352be3",
+        "android_client_info": {
+          "package_name": "com.example.benjii"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "163340677850-ajt6nm6tkmje51792us4b2fmicp5gv23.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.benjii",
+            "certificate_hash": "8c2417eae951ebe7bacffd304bbbc2864d69a3cd"
+          }
+        },
+        {
+          "client_id": "163340677850-n3elcmm8kqh5v56pgtvq66ukrf34vqbu.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCiswC7Grve_4MwWmGXYqizEjrfO1aLU0s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "163340677850-n3elcmm8kqh5v56pgtvq66ukrf34vqbu.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "163340677850-gg5gea3jp2ed8o29clu70gnbdkiu4p0k.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.benjii"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

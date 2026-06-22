@@ -1,66 +1,132 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:benjii/modular/final_message.dart';
+import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_modular/flutter_modular.dart';
 
-class TimerTogetherPage extends StatelessWidget {
+class TimerTogetherPage extends StatefulWidget {
   const TimerTogetherPage({super.key});
+
+  @override
+  State<TimerTogetherPage> createState() => _TimerTogetherPageState();
+}
+
+class _TimerTogetherPageState extends State<TimerTogetherPage> {
+  Timer? _continueButtonTimer;
+  bool _showContinueButton = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _continueButtonTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) {
+        setState(() => _showContinueButton = true);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _continueButtonTimer?.cancel();
+    super.dispose();
+  }
+
+  void _openFinalMessage() {
+    Modular.to.navigate(FinalMessagePageType.finalMessage.path);
+  }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Align(
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 78,
-                      height: 78,
-                      decoration: BoxDecoration(
-                        color: AppColor.primaryBlueLight.withValues(
-                          alpha: 0.18,
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 28, 24, 32),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.center,
+                      child: Container(
+                        width: 84,
+                        height: 84,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColor.blush,
+                              AppColor.primaryBlueLight.withValues(alpha: 0.28),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(26),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColor.primaryBlueDark.withValues(
+                                alpha: 0.1,
+                              ),
+                              blurRadius: 30,
+                              offset: const Offset(0, 16),
+                            ),
+                          ],
                         ),
-                        shape: BoxShape.circle,
+                        child: const Icon(
+                          Icons.hourglass_top_rounded,
+                          color: AppColor.primaryBlue,
+                          size: 36,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.hourglass_top_rounded,
-                        color: AppColor.primaryBlue,
-                        size: 36,
+                    ),
+                    const SizedBox(height: 28),
+                    Text(
+                      'Since we became us',
+                      textAlign: TextAlign.center,
+                      style: textTheme.displaySmall?.copyWith(
+                        color: AppColor.textPrimary,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 28),
-                  Text(
-                    'Since we became us',
-                    textAlign: TextAlign.center,
-                    style: textTheme.displaySmall?.copyWith(
-                      color: AppColor.textPrimary,
-                      fontWeight: FontWeight.w800,
+                    const SizedBox(height: 16),
+                    Text(
+                      'Counting every moment since 14 February 2026, 8:00 PM.',
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleMedium?.copyWith(
+                        color: AppColor.textSecondary,
+                        height: 1.45,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Counting every moment since 14 February 2026, 8:00 PM.',
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleMedium?.copyWith(
-                      color: AppColor.textSecondary,
-                      height: 1.45,
+                    const SizedBox(height: 32),
+                    const _RelationshipTimer(),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      height: 48,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 700),
+                        switchInCurve: Curves.easeOut,
+                        child: _showContinueButton
+                            ? FilledButton.icon(
+                                key: const ValueKey(
+                                  'timer-final-message-button',
+                                ),
+                                onPressed: _openFinalMessage,
+                                icon: const Icon(Icons.arrow_forward_rounded),
+                                label: const Text('Continue'),
+                              )
+                            : const SizedBox.shrink(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  const _RelationshipTimer(),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -140,14 +206,14 @@ class _DayCircle extends StatelessWidget {
           color: AppColor.surface,
           shape: BoxShape.circle,
           border: Border.all(
-            color: AppColor.primaryBlueLight.withValues(alpha: 0.58),
+            color: AppColor.blushDeep.withValues(alpha: 0.18),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: AppColor.primaryBlueDark.withValues(alpha: 0.1),
-              blurRadius: 28,
-              offset: const Offset(0, 14),
+              color: AppColor.blushDeep.withValues(alpha: 0.09),
+              blurRadius: 34,
+              offset: const Offset(0, 18),
             ),
           ],
         ),
@@ -209,14 +275,14 @@ class _TimeGroup extends StatelessWidget {
 
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColor.surface,
-        border: Border.all(color: AppColor.outline),
-        borderRadius: BorderRadius.circular(20),
+        color: AppColor.surface.withValues(alpha: 0.9),
+        border: Border.all(color: AppColor.outline.withValues(alpha: 0.72)),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: AppColor.primaryBlueDark.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            color: AppColor.primaryBlueDark.withValues(alpha: 0.07),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -394,12 +460,13 @@ class _FlipClockValueState extends State<_FlipClockValue>
 
   double get _valueWidth {
     final fontSize = widget.textStyle?.fontSize ?? 34;
-    return math.max(58, fontSize * (_currentValue.length * 0.72));
+    final longestValue = math.max(_previousValue.length, _currentValue.length);
+    return math.max(58, fontSize * (longestValue * 0.72) + 20);
   }
 
   double get _valueHeight {
     final fontSize = widget.textStyle?.fontSize ?? 34;
-    return fontSize * 1.08;
+    return math.max(50, fontSize * 1.35);
   }
 }
 
@@ -441,15 +508,16 @@ class _FlipHalf extends StatelessWidget {
           ..rotateX(rotationX),
         child: ClipRect(
           child: Stack(
+            fit: StackFit.expand,
             children: [
-              Align(
+              OverflowBox(
                 alignment: isTop ? Alignment.topCenter : Alignment.bottomCenter,
-                child: SizedBox(
-                  width: width,
-                  height: height,
-                  child: Center(
-                    child: Text(value, maxLines: 1, style: textStyle),
-                  ),
+                minWidth: width,
+                maxWidth: width,
+                minHeight: height,
+                maxHeight: height,
+                child: Center(
+                  child: Text(value, maxLines: 1, style: textStyle),
                 ),
               ),
               if (shadowOpacity > 0)

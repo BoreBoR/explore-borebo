@@ -7,7 +7,7 @@ extension ModeSelectPageTypePath on ModeSelectPageType {
   String get path {
     switch (this) {
       case ModeSelectPageType.modeSelect:
-        return '${ModeSelectModule.baseRoute}/';
+        return ModeSelectModule.baseRoute;
     }
   }
 }

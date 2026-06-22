@@ -1,5 +1,6 @@
 import 'package:benjii/app.dart';
 import 'package:benjii/app_module.dart';
+import 'package:benjii/modules/final_message/view/final_message_page.dart';
 import 'package:benjii/modules/home/bloc/home_bloc.dart';
 import 'package:benjii/modules/home/view/homepage.dart';
 import 'package:benjii/modules/landing/controller/pin_gate_controller.dart';
@@ -44,7 +45,10 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> pumpHomepage(WidgetTester tester) async {
+  Future<void> pumpHomepage(
+    WidgetTester tester, {
+    VoidCallback? onStoryComplete,
+  }) async {
     await setPhoneSurface(tester);
     Modular.destroy();
     await tester.pumpWidget(const SizedBox.shrink());
@@ -52,7 +56,7 @@ void main() {
       MaterialApp(
         home: BlocProvider(
           create: (_) => HomeBloc()..add(const HomeStarted()),
-          child: const Homepage(),
+          child: Homepage(onStoryComplete: onStoryComplete),
         ),
       ),
     );
@@ -64,6 +68,13 @@ void main() {
     Modular.destroy();
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpWidget(const MaterialApp(home: TimerTogetherPage()));
+  }
+
+  Future<void> pumpFinalMessagePage(WidgetTester tester) async {
+    await setPhoneSurface(tester);
+    Modular.destroy();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpWidget(const MaterialApp(home: FinalMessagePage()));
   }
 
   Future<void> enterPinWithKeyboard(WidgetTester tester, String pin) async {
@@ -87,6 +98,7 @@ void main() {
 
     expect(find.text('Choose mode'), findsOneWidget);
     expect(find.text('Number Random'), findsOneWidget);
+    expect(find.text('Kang Game'), findsOneWidget);
     expect(find.text('Coming soon'), findsOneWidget);
     expect(
       tester
@@ -174,6 +186,66 @@ void main() {
       );
     }
     expect(find.byKey(const ValueKey('random-history-item-11')), findsNothing);
+  });
+
+  testWidgets('kang game mode opens local prototype and starts round', (
+    WidgetTester tester,
+  ) async {
+    await pumpModularApp(tester);
+
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('kang-game-mode-button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('kang-game-mode-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Kang Game'), findsOneWidget);
+    expect(find.byKey(const ValueKey('kang-round-summary')), findsOneWidget);
+    expect(find.text('No round started'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('kang-start-round-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const ValueKey('kang-player-you')), findsOneWidget);
+    expect(find.byKey(const ValueKey('kang-player-benji')), findsOneWidget);
+    expect(find.textContaining('Round 1'), findsWidgets);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('kang-drop-card-button')),
+          )
+          .onPressed,
+      isNull,
+    );
+
+    final drawButton = find.byKey(const ValueKey('kang-draw-card-button'));
+    await tester.ensureVisible(drawButton);
+    await tester.tap(drawButton);
+    await tester.pumpAndSettle();
+    final firstCard = find
+        .descendant(
+          of: find.byKey(const ValueKey('kang-player-you')).first,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget.key is ValueKey<String> &&
+                (widget.key! as ValueKey<String>).value.startsWith(
+                  'kang-card-',
+                ),
+          ),
+        )
+        .first;
+    await tester.ensureVisible(firstCard);
+    await tester.tap(firstCard);
+    await tester.pump();
+
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const ValueKey('kang-drop-card-button')),
+          )
+          .onPressed,
+      isNotNull,
+    );
   });
 
   testWidgets('renders landing pin widget', (WidgetTester tester) async {
@@ -338,7 +410,7 @@ void main() {
     await tapStoryNext(tester);
     expect(find.text('Whenever you want to smile again'), findsOneWidget);
     expect(find.text('10 / 10'), findsOneWidget);
-    expect(find.text('Read it again'), findsOneWidget);
+    expect(find.text('Time together'), findsOneWidget);
   });
 
   testWidgets('timer together module renders relationship timer', (
@@ -353,7 +425,49 @@ void main() {
     expect(find.text('Seconds'), findsOneWidget);
   });
 
-  testWidgets('story page five renders gallery placeholders', (
+  testWidgets('timer together reveals final message button after delay', (
+    WidgetTester tester,
+  ) async {
+    await pumpTimerTogetherPage(tester);
+
+    expect(
+      find.byKey(const ValueKey('timer-final-message-button')),
+      findsNothing,
+    );
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(
+      find.byKey(const ValueKey('timer-final-message-button')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('final message page cycles messages and reveals quit button', (
+    WidgetTester tester,
+  ) async {
+    await pumpFinalMessagePage(tester);
+
+    expect(find.text(FinalMessagePage.messages[0]), findsOneWidget);
+    expect(find.byKey(const ValueKey('quit-program-button')), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 2220));
+    expect(find.text(FinalMessagePage.messages[1]), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 2220));
+    expect(find.text(FinalMessagePage.messages[2]), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 2220));
+    expect(find.text(FinalMessagePage.messages[3]), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 4400));
+    expect(find.text(FinalMessagePage.messages[3]), findsOneWidget);
+    expect(find.text('3'), findsOneWidget);
+    expect(find.byKey(const ValueKey('quit-program-button')), findsOneWidget);
+  });
+
+  testWidgets('story page five renders photo gallery', (
     WidgetTester tester,
   ) async {
     await pumpHomepage(tester);
@@ -363,8 +477,36 @@ void main() {
     }
 
     expect(find.text('Moments with you'), findsOneWidget);
-    expect(find.byKey(const ValueKey('gallery-placeholders')), findsOneWidget);
-    expect(find.text('[Add photo or memory 1]'), findsOneWidget);
+    expect(find.byKey(const ValueKey('photo-gallery')), findsOneWidget);
+    expect(find.byType(Image), findsNWidgets(4));
+    expect(find.text('Golden moments'), findsOneWidget);
+  });
+
+  testWidgets('gallery photo opens a zoomable full-screen viewer', (
+    WidgetTester tester,
+  ) async {
+    await pumpHomepage(tester);
+
+    for (var i = 0; i < 4; i++) {
+      await tapStoryNext(tester);
+    }
+
+    await tester.tap(find.byKey(const ValueKey('gallery-image-0')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('full-screen-image-viewer')),
+      findsOneWidget,
+    );
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey('close-image-viewer')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('full-screen-image-viewer')),
+      findsNothing,
+    );
   });
 
   testWidgets('wish page reveals message before moving forward', (
@@ -384,10 +526,14 @@ void main() {
     expect(find.text('8 / 10'), findsOneWidget);
   });
 
-  testWidgets('final story page restarts part two at story page one', (
+  testWidgets('final story page opens time together page', (
     WidgetTester tester,
   ) async {
-    await pumpHomepage(tester);
+    var didOpenTimeTogether = false;
+    await pumpHomepage(
+      tester,
+      onStoryComplete: () => didOpenTimeTogether = true,
+    );
 
     for (var i = 0; i < 9; i++) {
       await tapStoryNext(tester);
@@ -397,19 +543,48 @@ void main() {
     expect(find.text('10 / 10'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Hi love'), findsOneWidget);
-    expect(find.text('1 / 10'), findsOneWidget);
+    expect(didOpenTimeTogether, isTrue);
   });
 
-  testWidgets('developer button can open any story page after pin', (
+  testWidgets('timer together opens final page and quits to mode select', (
     WidgetTester tester,
   ) async {
     await pumpModularApp(tester);
 
-    Modular.to.navigate('/benji-message/');
+    PinGateController.unlock();
+    Modular.to.navigate('/timer-together/');
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
-    await enterPinWithKeyboard(tester, '140226');
+
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(milliseconds: 700));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('timer-final-message-button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('timer-final-message-button')));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+
+    expect(find.text(FinalMessagePage.messages[0]), findsOneWidget);
+
+    await tester.pump(const Duration(milliseconds: 11200));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('quit-program-button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('quit-program-button')));
+    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choose mode'), findsOneWidget);
+  });
+
+  testWidgets('developer button can open any story page when unlocked', (
+    WidgetTester tester,
+  ) async {
+    await pumpModularApp(tester);
+
+    PinGateController.unlock();
+    Modular.to.navigate('/home/');
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpAndSettle();
 

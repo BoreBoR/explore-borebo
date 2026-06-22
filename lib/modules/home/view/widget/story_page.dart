@@ -45,18 +45,34 @@ class StoryPage extends StatelessWidget {
                       Align(
                         alignment: Alignment.center,
                         child: Container(
-                          width: 76,
-                          height: 76,
+                          width: 82,
+                          height: 82,
                           decoration: BoxDecoration(
-                            color: AppColor.primaryBlueLight.withValues(
-                              alpha: 0.18,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                colorScheme.secondaryContainer,
+                                colorScheme.primaryContainer.withValues(
+                                  alpha: 0.62,
+                                ),
+                              ],
                             ),
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(26),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColor.blushDeep.withValues(
+                                  alpha: 0.1,
+                                ),
+                                blurRadius: 30,
+                                offset: const Offset(0, 16),
+                              ),
+                            ],
                           ),
                           child: Icon(
                             page.icon,
                             color: colorScheme.primary,
-                            size: 34,
+                            size: 36,
                           ),
                         ),
                       ),
@@ -65,7 +81,7 @@ class StoryPage extends StatelessWidget {
                         page.title,
                         textAlign: TextAlign.center,
                         style: textTheme.displaySmall?.copyWith(
-                          color: AppColor.textPrimary,
+                          color: colorScheme.onSurface,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -84,7 +100,7 @@ class StoryPage extends StatelessWidget {
                           page.footer!,
                           textAlign: TextAlign.center,
                           style: textTheme.bodyMedium?.copyWith(
-                            color: AppColor.primaryBlue,
+                            color: colorScheme.secondary,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -109,8 +125,8 @@ class StoryPage extends StatelessWidget {
   }
 
   IconData _buttonIcon(StoryPageData page) {
-    if (page.kind == StoryPageKind.restart) {
-      return Icons.replay_rounded;
+    if (page.kind == StoryPageKind.timeTogether) {
+      return Icons.hourglass_top_rounded;
     }
 
     if (page.kind == StoryPageKind.wish) {

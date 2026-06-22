@@ -45,16 +45,21 @@ abstract final class StoryPages {
     ),
     StoryPageData(
       title: 'Moments with you',
-      body:
-          'Photos can go here later. For now, these are little spaces for our favorite memories.',
+      body: 'A few little scenes that remind me of time spent with you.',
       buttonLabel: 'Next surprise',
       icon: Icons.photo_library_outlined,
       kind: StoryPageKind.gallery,
       items: [
-        '[Add photo or memory 1]',
-        '[Add photo or memory 2]',
-        '[Add photo or memory 3]',
-        '[Add photo or memory 4]',
+        'Golden moments',
+        'Our quiet time',
+        'Little things I keep',
+        'Evenings together',
+      ],
+      imageAssets: [
+        'assets/images/moments/moment_1.png',
+        'assets/images/moments/moment_2.png',
+        'assets/images/moments/moment_3.png',
+        'assets/images/moments/moment_4.png',
       ],
     ),
     StoryPageData(
@@ -89,9 +94,9 @@ abstract final class StoryPages {
     StoryPageData(
       title: 'Whenever you want to smile again',
       body: 'This little surprise will be here for you.',
-      buttonLabel: 'Read it again',
-      icon: Icons.replay_rounded,
-      kind: StoryPageKind.restart,
+      buttonLabel: 'Time together',
+      icon: Icons.hourglass_top_rounded,
+      kind: StoryPageKind.timeTogether,
     ),
   ];
 }
