@@ -111,4 +111,48 @@ void main() {
 
     expect(KangRules.pointsForWinningHand(hand), 3);
   });
+
+  test('round state serializes for multiplayer storage', () {
+    final pendingCard = card(KangRank.five, KangSuit.spades);
+    final round = KangRoundState(
+      players: [
+        KangPlayerState(
+          id: 'host',
+          name: 'Host',
+          hand: [pendingCard, card(KangRank.king, KangSuit.clubs)],
+          gamePoints: 2,
+        ),
+        KangPlayerState(
+          id: 'guest',
+          name: 'Guest',
+          hand: [card(KangRank.five, KangSuit.hearts)],
+          pendingLossPenaltyPoints: 2,
+        ),
+      ],
+      drawPile: [card(KangRank.two, KangSuit.diamonds)],
+      discardPile: [pendingCard],
+      currentTurnIndex: 1,
+      roundNumber: 3,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.respondingToDrop,
+      pendingDroppedCard: pendingCard,
+      pendingDropperIndex: 0,
+      lastDrawnCard: card(KangRank.king, KangSuit.clubs),
+      message: 'Guest must respond.',
+    );
+
+    final restored = KangRoundState.fromJson(round.toJson());
+
+    expect(restored.players[0].id, 'host');
+    expect(restored.players[0].gamePoints, 2);
+    expect(restored.players[1].pendingLossPenaltyPoints, 2);
+    expect(restored.drawPile.single, card(KangRank.two, KangSuit.diamonds));
+    expect(restored.discardPile.single, pendingCard);
+    expect(restored.currentPlayer?.id, 'guest');
+    expect(restored.turnPhase, KangTurnPhase.respondingToDrop);
+    expect(restored.pendingDroppedCard, pendingCard);
+    expect(restored.pendingDropperIndex, 0);
+    expect(restored.lastDrawnCard, card(KangRank.king, KangSuit.clubs));
+    expect(restored.message, 'Guest must respond.');
+  });
 }

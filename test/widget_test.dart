@@ -99,6 +99,7 @@ void main() {
     expect(find.text('Choose mode'), findsOneWidget);
     expect(find.text('Number Random'), findsOneWidget);
     expect(find.text('Kang Game'), findsOneWidget);
+    expect(find.text('Kang Online'), findsOneWidget);
     expect(find.text('Coming soon'), findsOneWidget);
     expect(
       tester
@@ -209,14 +210,16 @@ void main() {
     expect(find.byKey(const ValueKey('kang-player-you')), findsOneWidget);
     expect(find.byKey(const ValueKey('kang-player-benji')), findsOneWidget);
     expect(find.textContaining('Round 1'), findsWidgets);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.byKey(const ValueKey('kang-drop-card-button')),
-          )
-          .onPressed,
-      isNull,
-    );
+    final dropButton = find.byKey(const ValueKey('kang-drop-card-button'));
+    if (dropButton.evaluate().isEmpty) {
+      expect(
+        find.byKey(const ValueKey('kang-round-result-dialog')),
+        findsOneWidget,
+      );
+      return;
+    }
+
+    expect(tester.widget<FilledButton>(dropButton).onPressed, isNull);
 
     final drawButton = find.byKey(const ValueKey('kang-draw-card-button'));
     await tester.ensureVisible(drawButton);

@@ -8,6 +8,19 @@ enum KangSuit {
 
   final String label;
   final bool isRed;
+
+  String get assetName {
+    switch (this) {
+      case KangSuit.spades:
+        return 'spades';
+      case KangSuit.hearts:
+        return 'hearts';
+      case KangSuit.diamonds:
+        return 'diamonds';
+      case KangSuit.clubs:
+        return 'clubs';
+    }
+  }
 }
 
 enum KangRank {
@@ -30,6 +43,57 @@ enum KangRank {
   final String label;
   final int handValue;
   final int sequenceValue;
+
+  String get assetName {
+    switch (this) {
+      case KangRank.ace:
+        return 'ace';
+      case KangRank.two:
+        return '2';
+      case KangRank.three:
+        return '3';
+      case KangRank.four:
+        return '4';
+      case KangRank.five:
+        return '5';
+      case KangRank.six:
+        return '6';
+      case KangRank.seven:
+        return '7';
+      case KangRank.eight:
+        return '8';
+      case KangRank.nine:
+        return '9';
+      case KangRank.ten:
+        return '10';
+      case KangRank.jack:
+        return 'jack';
+      case KangRank.queen:
+        return 'queen';
+      case KangRank.king:
+        return 'king';
+    }
+  }
+
+  bool get usesAlternateAsset {
+    switch (this) {
+      case KangRank.jack:
+      case KangRank.queen:
+      case KangRank.king:
+        return true;
+      case KangRank.ace:
+      case KangRank.two:
+      case KangRank.three:
+      case KangRank.four:
+      case KangRank.five:
+      case KangRank.six:
+      case KangRank.seven:
+      case KangRank.eight:
+      case KangRank.nine:
+      case KangRank.ten:
+        return false;
+    }
+  }
 }
 
 class KangCard {
@@ -39,6 +103,9 @@ class KangCard {
   final KangSuit suit;
 
   String get id => '${rank.label}${suit.label}';
+
+  String get assetPath =>
+      'assets/images/SVG-cards-1.3/${rank.assetName}_of_${suit.assetName}${rank.usesAlternateAsset ? '2' : ''}.svg';
 
   int get handValue => rank.handValue;
 
