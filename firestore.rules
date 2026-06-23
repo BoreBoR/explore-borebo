@@ -32,6 +32,32 @@ service cloud.firestore {
       allow read, update, delete: if isRoomPlayer(resource.data);
     }
 
+    match /users/{userId} {
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'player'
+        && request.resource.data.totalScore == 0
+        && request.resource.data.wins == 0
+        && request.resource.data.losses == 0
+        && request.resource.data.matchesPlayed == 0;
+
+      allow read: if signedIn()
+        && request.auth.uid == userId;
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName',
+          'email',
+          'photoUrl',
+          'updatedAt',
+          'lastSignInAt',
+          'lastScrollState',
+          'preferences',
+        ]);
+    }
+
     match /kang_matches/{matchId} {
       allow create: if signedIn()
         && request.resource.data.hostUserId == request.auth.uid

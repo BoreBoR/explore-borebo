@@ -40,6 +40,9 @@ void main() {
     expect(next.pendingDroppedCard, droppedCard);
     expect(next.pendingDropperIndex, 0);
     expect(next.discardPile, [droppedCard]);
+    expect(next.tableDroppedCards, {
+      'you': [droppedCard],
+    });
     expect(next.players[0].hand, isNot(contains(droppedCard)));
     expect(next.players[1].hand, contains(matchingCard));
   });
@@ -70,6 +73,9 @@ void main() {
       turnPhase: KangTurnPhase.respondingToDrop,
       pendingDroppedCard: droppedCard,
       pendingDropperIndex: 0,
+      tableDroppedCards: {
+        'you': [droppedCard],
+      },
     );
 
     final next = controller.respondToDroppedCards(state, [
@@ -81,7 +87,54 @@ void main() {
     expect(next.turnPhase, KangTurnPhase.start);
     expect(next.pendingDroppedCard, isNull);
     expect(next.discardPile, [droppedCard, matchingCard, secondMatchingCard]);
+    expect(next.tableDroppedCards, {
+      'you': [droppedCard],
+      'benji': [matchingCard, secondMatchingCard],
+    });
     expect(next.players[1].hand, [card(KangRank.nine, KangSuit.diamonds)]);
+  });
+
+  test('opponent with matching rank may draw instead of responding', () {
+    final controller = LocalKangGameController();
+    final droppedCard = card(KangRank.three, KangSuit.hearts);
+    final matchingCard = card(KangRank.three, KangSuit.diamonds);
+    final drawnCard = card(KangRank.king, KangSuit.clubs);
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(id: 'you', name: 'You', hand: const []),
+        KangPlayerState(
+          id: 'benji',
+          name: 'Benji',
+          hand: [matchingCard, card(KangRank.nine, KangSuit.diamonds)],
+        ),
+      ],
+      drawPile: [drawnCard],
+      discardPile: [droppedCard],
+      currentTurnIndex: 1,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.respondingToDrop,
+      pendingDroppedCard: droppedCard,
+      pendingDropperIndex: 0,
+      tableDroppedCards: {
+        'you': [droppedCard],
+      },
+    );
+
+    final next = controller.drawForCurrentPlayer(state);
+
+    expect(next.currentPlayer?.id, 'benji');
+    expect(next.turnPhase, KangTurnPhase.drew);
+    expect(next.pendingDroppedCard, isNull);
+    expect(next.pendingDropperIndex, isNull);
+    expect(next.players[1].hand, [
+      matchingCard,
+      card(KangRank.nine, KangSuit.diamonds),
+      drawnCard,
+    ]);
+    expect(next.tableDroppedCards, {
+      'you': [droppedCard],
+    });
   });
 
   test('dropping without opponent match passes turn', () {
