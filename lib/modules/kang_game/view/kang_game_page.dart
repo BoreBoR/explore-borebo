@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:benjii/modules/kang_game/controller/local_kang_game_controller.dart';
 import 'package:benjii/modules/kang_game/model/kang_card.dart';
 import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
@@ -7,6 +9,7 @@ import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:shimmer/shimmer.dart';
 
 String kangDisplayName(String name) {
   final trimmed = name.trim();
@@ -492,7 +495,8 @@ class _OpponentHandPanel extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        // padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        padding: EdgeInsets.zero,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -529,65 +533,66 @@ class _OpponentHandRow extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final sortedHand = KangRules.sortedCards(player.hand);
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: isCurrent
-            ? AppColor.blush.withValues(alpha: 0.76)
-            : Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(isCurrent ? 10 : 0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return _TurnPanelFrame(
+      enabled: isCurrent,
+      borderRadius: 14,
+      headerHeight: 40,
+      headerColor: const Color(0xFFF7B0B7),
+      removeBodyPadding: true,
+      headerChild: Padding(
+        padding: const EdgeInsets.only(left: 8, right: 8),
+        child: Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    kangDisplayName(player.name),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: textTheme.labelLarge?.copyWith(
-                      color: AppColor.textPrimary,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+            const _TurnIndicatorDot(size: 10),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                kangDisplayName(player.name),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: textTheme.titleMedium?.copyWith(
+                  color: AppColor.textPrimary,
+                  fontWeight: FontWeight.w900,
                 ),
-                Text(
-                  '${player.gamePoints} pts',
-                  style: textTheme.labelMedium?.copyWith(
-                    color: AppColor.blushDeep,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
+              ),
             ),
-            const SizedBox(height: 8),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final card in sortedHand) ...[
-                    if (hideCards)
-                      const _CardBack()
-                    else
-                      _PlayingCard(
-                        card: card,
-                        isEnabled: false,
-                        isSelected: false,
-                        isMatchHint: false,
-                        isLastDrawn: false,
-                        onTap: () {},
-                      ),
-                    const SizedBox(width: 10),
-                  ],
-                ],
+            SizedBox(
+              width: 58,
+              child: Text(
+                '${player.gamePoints} pts',
+                textAlign: TextAlign.right,
+                style: textTheme.titleSmall?.copyWith(
+                  color: AppColor.textPrimary,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ],
         ),
       ),
+      bodyChild: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (final card in sortedHand) ...[
+              if (hideCards)
+                const _CardBack()
+              else
+                _PlayingCard(
+                  card: card,
+                  isEnabled: false,
+                  isSelected: false,
+                  isMatchHint: false,
+                  isLastDrawn: false,
+                  onTap: () {},
+                ),
+              const SizedBox(width: 10),
+            ],
+          ],
+        ),
+      ),
+      contentPadding: EdgeInsets.zero,
     );
   }
 }
@@ -1007,44 +1012,45 @@ class KangPlayerHandCard extends StatelessWidget {
         : 'Hand value: ${KangRules.handValue(player.hand)}'
             ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
 
-    return DecoratedBox(
+    return _TurnPanelFrame(
+      enabled: isCurrent,
+      borderRadius: 20,
       key: key ?? ValueKey('kang-player-${player.id}'),
-      decoration: BoxDecoration(
-        color: isCurrent
-            ? AppColor.blush.withValues(alpha: 0.76)
-            : AppColor.surface.withValues(alpha: 0.88),
-        border: Border.all(
-          color: isCurrent
-              ? AppColor.blushDeep.withValues(alpha: 0.28)
-              : AppColor.outline.withValues(alpha: 0.7),
-        ),
-        borderRadius: BorderRadius.circular(20),
+      headerHeight: 46,
+      headerColor: const Color(0xFF8FC2FF),
+      headerChild: Row(
+        children: [
+          const _TurnIndicatorDot(size: 12),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              kangDisplayName(player.name),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textTheme.titleLarge?.copyWith(
+                color: AppColor.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 64,
+            child: Text(
+              '${player.gamePoints} pts',
+              textAlign: TextAlign.right,
+              style: textTheme.titleMedium?.copyWith(
+                color: AppColor.textPrimary,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
+      bodyChild: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    kangDisplayName(player.name),
-                    style: textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                Text(
-                  '${player.gamePoints} pts',
-                  style: textTheme.labelLarge?.copyWith(
-                    color: AppColor.blushDeep,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -1076,6 +1082,161 @@ class KangPlayerHandCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _TurnPanelFrame extends StatelessWidget {
+  const _TurnPanelFrame({
+    super.key,
+    required this.enabled,
+    required this.borderRadius,
+    required this.headerHeight,
+    required this.headerColor,
+    required this.headerChild,
+    required this.bodyChild,
+    this.removeBodyPadding = false,
+    this.contentPadding = const EdgeInsets.fromLTRB(14, 10, 14, 10),
+  });
+
+  final bool enabled;
+  final double borderRadius;
+  final double headerHeight;
+  final Color headerColor;
+  final Widget headerChild;
+  final Widget bodyChild;
+  final bool removeBodyPadding;
+  final EdgeInsets contentPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      key: key,
+      decoration: BoxDecoration(
+        color: AppColor.surface.withValues(alpha: 0.96),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: enabled
+              ? AppColor.blushDeep.withValues(alpha: 0.18)
+              : AppColor.outline.withValues(alpha: 0.7),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: enabled
+                ? AppColor.blushDeep.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.03),
+            blurRadius: enabled ? 20 : 14,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            SizedBox(
+              height: headerHeight,
+              child: _TurnHeaderBand(
+                enabled: enabled,
+                backgroundColor: headerColor,
+                child: Padding(
+                  padding: contentPadding,
+                  child: headerChild,
+                ),
+              ),
+            ),
+            if (removeBodyPadding) bodyChild else bodyChild,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TurnHeaderBand extends StatelessWidget {
+  const _TurnHeaderBand({
+    required this.enabled,
+    required this.backgroundColor,
+    required this.child,
+  });
+
+  final bool enabled;
+  final Color backgroundColor;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final bandBackground = ClipPath(
+      clipper: const _TurnHeaderDiagonalClipper(),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+        ),
+      ),
+    );
+
+    final bandContent = child;
+
+    if (!enabled) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          bandBackground,
+          bandContent,
+        ],
+      );
+    }
+
+    final isRunning = !Platform.environment.containsKey('FLUTTER_TEST');
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Shimmer.fromColors(
+          enabled: isRunning,
+          period: const Duration(milliseconds: 2200),
+          baseColor: backgroundColor,
+          highlightColor: Colors.white.withValues(alpha: 0.92),
+          child: bandBackground,
+        ),
+        bandContent,
+      ],
+    );
+  }
+}
+
+class _TurnHeaderDiagonalClipper extends CustomClipper<Path> {
+  const _TurnHeaderDiagonalClipper();
+
+  @override
+  Path getClip(Size size) {
+    final cutStart = size.width * 0.67;
+    return Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(cutStart, size.height)
+      ..lineTo(0, size.height)
+      ..close();
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+class _TurnIndicatorDot extends StatelessWidget {
+  const _TurnIndicatorDot({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF86FF2E),
+        shape: BoxShape.circle,
       ),
     );
   }
