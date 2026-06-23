@@ -137,6 +137,10 @@ void main() {
       turnPhase: KangTurnPhase.respondingToDrop,
       pendingDroppedCard: pendingCard,
       pendingDropperIndex: 0,
+      tableDroppedCards: {
+        'host': [pendingCard],
+        'guest': [card(KangRank.five, KangSuit.hearts)],
+      },
       lastDrawnCard: card(KangRank.king, KangSuit.clubs),
       message: 'Guest must respond.',
     );
@@ -152,6 +156,10 @@ void main() {
     expect(restored.turnPhase, KangTurnPhase.respondingToDrop);
     expect(restored.pendingDroppedCard, pendingCard);
     expect(restored.pendingDropperIndex, 0);
+    expect(restored.tableDroppedCards['host'], [pendingCard]);
+    expect(restored.tableDroppedCards['guest'], [
+      card(KangRank.five, KangSuit.hearts),
+    ]);
     expect(restored.lastDrawnCard, card(KangRank.king, KangSuit.clubs));
     expect(restored.message, 'Guest must respond.');
   });

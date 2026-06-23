@@ -89,16 +89,19 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
     required User user,
   }) {
     final isYourTurn = round.currentPlayer?.id == user.uid;
-    final canStartRound =
-        match.isReady &&
+    final statusText = match.isReady
+        ? isYourTurn
+            ? 'Your turn'
+            : 'Waiting for ${round.currentPlayer == null ? 'opponent' : kangDisplayName(round.currentPlayer!.name)}'
+        : 'Waiting for another player to join.';
+    final canStartRound = match.isReady &&
         (round.status == KangRoundStatus.notStarted ||
             round.status == KangRoundStatus.finished);
 
     return ValueListenableBuilder<bool>(
       valueListenable: _isSubmitting,
       builder: (context, isSubmitting, _) {
-        final canPlay =
-            match.isReady &&
+        final canPlay = match.isReady &&
             round.status == KangRoundStatus.playing &&
             isYourTurn &&
             !isSubmitting;
@@ -106,43 +109,40 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
         return ValueListenableBuilder<List<KangCard>>(
           valueListenable: _selectedCards,
           builder: (context, selectedCards, _) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final player in round.players) ...[
-                  KangPlayerHandCard(
-                    key: ValueKey('kang-player-${player.id}'),
-                    player: player,
-                    isCurrent: round.currentPlayer?.id == player.id,
-                    canDrop:
-                        canPlay &&
-                        player.id == user.uid &&
-                        (round.turnPhase == KangTurnPhase.drew ||
-                            round.turnPhase == KangTurnPhase.respondingToDrop),
-                    selectedCards: selectedCards,
-                    pendingDroppedCard: round.pendingDroppedCard,
-                    lastDrawnCard: round.lastDrawnCard,
-                    hideCards: player.id != user.uid,
-                    onCardTap: (card) => _selectCard(round, player, card),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                const SizedBox(height: 8),
-                if (canStartRound)
-                  Align(
-                    alignment: Alignment.center,
-                    child: FilledButton.icon(
+            return KangGameBoard(
+              title: 'Kang Multiplayer',
+              subtitle: statusText,
+              round: round,
+              primaryPlayerId: user.uid,
+              selectedCards: selectedCards,
+              onBack: () => Modular.to.navigate('/kang-game/multiplayer'),
+              backButtonKey: const ValueKey('kang-multiplayer-back-button'),
+              trailingHeader: SelectableText(
+                'Match ${match.id}',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppColor.textSecondary,
+                    ),
+              ),
+              canDropPlayer: (player) =>
+                  canPlay &&
+                  player.id == user.uid &&
+                  (round.turnPhase == KangTurnPhase.drew ||
+                      round.turnPhase == KangTurnPhase.respondingToDrop),
+              hideCardsForPlayer: (player) => player.id != user.uid,
+              onCardTap: (player, card) => _selectCard(round, player, card),
+              startAction: canStartRound
+                  ? FilledButton.icon(
                       key: const ValueKey(
                         'kang-multiplayer-start-round-button',
                       ),
                       onPressed: isSubmitting
                           ? null
                           : () => _submit(
-                              (userId) => widget.repository.startRound(
-                                matchId: match.id,
-                                userId: userId,
+                                (userId) => widget.repository.startRound(
+                                  matchId: match.id,
+                                  userId: userId,
+                                ),
                               ),
-                            ),
                       icon: Icon(
                         round.status == KangRoundStatus.finished
                             ? Icons.refresh_rounded
@@ -153,63 +153,62 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
                             ? 'Next round'
                             : 'Start round',
                       ),
-                    ),
-                  )
-                else
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      FilledButton.tonalIcon(
-                        key: const ValueKey(
-                          'kang-multiplayer-draw-card-button',
-                        ),
-                        onPressed:
-                            canPlay && round.turnPhase == KangTurnPhase.start
-                            ? () => _submit(
+                    )
+                  : null,
+              drawAction: canStartRound
+                  ? null
+                  : FilledButton.tonalIcon(
+                      key: const ValueKey(
+                        'kang-multiplayer-draw-card-button',
+                      ),
+                      onPressed: canPlay &&
+                              (round.turnPhase == KangTurnPhase.start ||
+                                  round.turnPhase ==
+                                      KangTurnPhase.respondingToDrop)
+                          ? () => _submit(
                                 (userId) => widget.repository.draw(
                                   matchId: match.id,
                                   userId: userId,
                                 ),
                               )
-                            : null,
-                        icon: const Icon(Icons.add_card_rounded),
-                        label: const Text('Draw card'),
+                          : null,
+                      icon: const Icon(Icons.add_card_rounded),
+                      label: const Text('Draw'),
+                    ),
+              dropAction: canStartRound
+                  ? null
+                  : FilledButton.icon(
+                      key: const ValueKey(
+                        'kang-multiplayer-drop-card-button',
                       ),
-                      FilledButton.icon(
-                        key: const ValueKey(
-                          'kang-multiplayer-drop-card-button',
-                        ),
-                        onPressed: canPlay && selectedCards.isNotEmpty
-                            ? () => _submit(
+                      onPressed: canPlay && selectedCards.isNotEmpty
+                          ? () => _submit(
                                 (userId) => widget.repository.dropCards(
                                   matchId: match.id,
                                   userId: userId,
                                   cards: selectedCards,
                                 ),
                               )
-                            : null,
-                        icon: const Icon(Icons.move_down_rounded),
-                        label: const Text('Drop card'),
-                      ),
-                      OutlinedButton.icon(
-                        key: const ValueKey('kang-multiplayer-declare-button'),
-                        onPressed:
-                            canPlay && round.turnPhase == KangTurnPhase.start
-                            ? () => _submit(
-                                (userId) => widget.repository.declareKang(
-                                  matchId: match.id,
-                                  userId: userId,
-                                ),
-                              )
-                            : null,
-                        icon: const Icon(Icons.flag_rounded),
-                        label: const Text('Declare Kang'),
-                      ),
-                    ],
-                  ),
-              ],
+                          : null,
+                      icon: const Icon(Icons.move_down_rounded),
+                      label: const Text('Drop'),
+                    ),
+              kangAction: canStartRound
+                  ? null
+                  : OutlinedButton.icon(
+                      key: const ValueKey('kang-multiplayer-declare-button'),
+                      onPressed:
+                          canPlay && round.turnPhase == KangTurnPhase.start
+                              ? () => _submit(
+                                    (userId) => widget.repository.declareKang(
+                                      matchId: match.id,
+                                      userId: userId,
+                                    ),
+                                  )
+                              : null,
+                      icon: const Icon(Icons.flag_rounded),
+                      label: const Text('Kang!'),
+                    ),
             );
           },
         );
@@ -266,7 +265,7 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
       final body = winner == null
           ? round.message ?? 'No winner this round.'
           : '${winner.name} wins by $reasonLabel.\n'
-                'Total points: ${winner.gamePoints}';
+              'Total points: ${winner.gamePoints}';
 
       showDialog<void>(
         context: context,
@@ -289,8 +288,6 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AppBackground(
@@ -327,70 +324,10 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
 
                   _showRoundResultDialogIfNeeded(match.round);
 
-                  final round = match.round;
-                  final isYourTurn = round.currentPlayer?.id == user.uid;
-
-                  return Center(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 640),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              children: [
-                                IconButton.filled(
-                                  key: const ValueKey(
-                                    'kang-multiplayer-back-button',
-                                  ),
-                                  tooltip: 'Back',
-                                  onPressed: () => Modular.to.navigate(
-                                    '/kang-game/multiplayer',
-                                  ),
-                                  icon: const Icon(Icons.arrow_back_rounded),
-                                ),
-                                const Spacer(),
-                                SelectableText(
-                                  'Match ${match.id}',
-                                  style: textTheme.labelSmall?.copyWith(
-                                    color: AppColor.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Kang Multiplayer',
-                              textAlign: TextAlign.center,
-                              style: textTheme.displaySmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              match.isReady
-                                  ? isYourTurn
-                                        ? 'Your turn'
-                                        : 'Waiting for ${round.currentPlayer?.name ?? 'opponent'}'
-                                  : 'Waiting for another player to join.',
-                              textAlign: TextAlign.center,
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: AppColor.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            KangRoundSummary(round: round),
-                            const SizedBox(height: 18),
-                            _buildPlayerArea(
-                              match: match,
-                              round: round,
-                              user: user,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                  return _buildPlayerArea(
+                    match: match,
+                    round: match.round,
+                    user: user,
                   );
                 },
               );

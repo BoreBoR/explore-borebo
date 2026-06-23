@@ -1,3 +1,4 @@
+import 'package:benjii/modules/auth/service/user_profile_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -16,7 +17,11 @@ class GoogleAuthService {
 
   Future<UserCredential> signInWithGoogle() async {
     if (kIsWeb) {
-      return _firebaseAuth.signInWithPopup(GoogleAuthProvider());
+      final credential = await _firebaseAuth.signInWithPopup(
+        GoogleAuthProvider(),
+      );
+      await _ensureProfile(credential.user);
+      return credential;
     }
 
     await _initializeGoogleSignIn();
@@ -27,7 +32,9 @@ class GoogleAuthService {
       idToken: googleAuth.idToken,
     );
 
-    return _firebaseAuth.signInWithCredential(credential);
+    final userCredential = await _firebaseAuth.signInWithCredential(credential);
+    await _ensureProfile(userCredential.user);
+    return userCredential;
   }
 
   Future<void> signOut() async {
@@ -43,5 +50,12 @@ class GoogleAuthService {
     return _googleSignInInitialization ??= _googleSignIn.initialize(
       serverClientId: _serverClientId,
     );
+  }
+
+  Future<void> _ensureProfile(User? user) async {
+    if (user == null) {
+      return;
+    }
+    await UserProfileService.instance.ensureUserProfile(user);
   }
 }

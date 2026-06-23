@@ -8,6 +8,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+String kangDisplayName(String name) {
+  final trimmed = name.trim();
+  if (trimmed.isEmpty) {
+    return trimmed;
+  }
+
+  final parts = trimmed.split(RegExp(r'\s+'));
+  final firstName = parts.first;
+  final firstLabel =
+      firstName.length > 7 ? '${firstName.substring(0, 7)}...' : firstName;
+  if (parts.length == 1) {
+    return firstLabel;
+  }
+
+  return '$firstLabel ${parts.last.characters.first}.';
+}
+
+String kangDisplayMessage(KangRoundState round, String message) {
+  var displayMessage = message;
+  for (final player in round.players) {
+    displayMessage = displayMessage.replaceAll(
+      player.name,
+      kangDisplayName(player.name),
+    );
+  }
+  return displayMessage;
+}
+
 class KangGamePage extends StatefulWidget {
   const KangGamePage({super.key, this.controller, this.initialRound});
 
@@ -149,7 +177,7 @@ class _KangGamePageState extends State<KangGamePage> {
       final body = winner == null
           ? _round.message ?? 'No winner this round.'
           : '${winner.name} wins by $reasonLabel.\n'
-                'Total points: ${winner.gamePoints}';
+              'Total points: ${winner.gamePoints}';
 
       showDialog<void>(
         context: context,
@@ -173,170 +201,636 @@ class _KangGamePageState extends State<KangGamePage> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final colorScheme = Theme.of(context).colorScheme;
     final showIntro = _round.status == KangRoundStatus.notStarted;
-    final showStartAction =
-        _round.status == KangRoundStatus.notStarted ||
+    final showStartAction = _round.status == KangRoundStatus.notStarted ||
         _round.status == KangRoundStatus.finished;
     final showPlayActions = _round.status == KangRoundStatus.playing;
+    final primaryPlayerId = _round.players.any((player) => player.id == 'you')
+        ? 'you'
+        : _round.currentPlayer?.id;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AppBackground(
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: IconButton.filled(
-                        key: const ValueKey('kang-back-button'),
-                        tooltip: 'Back',
-                        onPressed: () => Modular.to.navigate('/'),
-                        icon: const Icon(Icons.arrow_back_rounded),
+          child: KangGameBoard(
+            title: 'Kang Game',
+            subtitle: showIntro
+                ? 'Draw, drop, and let matching ranks bounce the turn back.'
+                : null,
+            round: _round,
+            primaryPlayerId: primaryPlayerId,
+            selectedCards: _selectedCards,
+            onBack: () => Modular.to.navigate('/'),
+            backButtonKey: const ValueKey('kang-back-button'),
+            canDropPlayer: (player) =>
+                _round.currentPlayer?.id == player.id &&
+                (_round.turnPhase == KangTurnPhase.drew ||
+                    _round.turnPhase == KangTurnPhase.respondingToDrop),
+            hideCardsForPlayer: (_) => false,
+            onCardTap: _selectCard,
+            startAction: showStartAction
+                ? FilledButton.icon(
+                    key: const ValueKey('kang-start-round-button'),
+                    onPressed: _startRound,
+                    icon: Icon(
+                      _round.status == KangRoundStatus.finished
+                          ? Icons.refresh_rounded
+                          : Icons.play_arrow_rounded,
+                    ),
+                    label: Text(
+                      _round.status == KangRoundStatus.finished
+                          ? 'Next round'
+                          : 'Start local round',
+                    ),
+                  )
+                : null,
+            drawAction: showPlayActions
+                ? FilledButton.tonalIcon(
+                    key: const ValueKey('kang-draw-card-button'),
+                    onPressed: _round.status == KangRoundStatus.playing &&
+                            (_round.turnPhase == KangTurnPhase.start ||
+                                _round.turnPhase ==
+                                    KangTurnPhase.respondingToDrop)
+                        ? _drawCard
+                        : null,
+                    icon: const Icon(Icons.add_card_rounded),
+                    label: const Text('Draw'),
+                  )
+                : null,
+            dropAction: showPlayActions
+                ? FilledButton.icon(
+                    key: const ValueKey('kang-drop-card-button'),
+                    onPressed:
+                        _selectedCards.isEmpty ? null : _dropSelectedCard,
+                    icon: const Icon(Icons.move_down_rounded),
+                    label: const Text('Drop'),
+                  )
+                : null,
+            kangAction: showPlayActions
+                ? OutlinedButton.icon(
+                    key: const ValueKey('kang-declare-button'),
+                    onPressed: _round.status == KangRoundStatus.playing &&
+                            _round.turnPhase == KangTurnPhase.start
+                        ? _declareKang
+                        : null,
+                    icon: const Icon(Icons.flag_rounded),
+                    label: const Text('Kang!'),
+                  )
+                : null,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class KangGameBoard extends StatelessWidget {
+  const KangGameBoard({
+    super.key,
+    required this.title,
+    required this.round,
+    required this.selectedCards,
+    required this.canDropPlayer,
+    required this.hideCardsForPlayer,
+    required this.onCardTap,
+    this.subtitle,
+    this.primaryPlayerId,
+    this.onBack,
+    this.backButtonKey,
+    this.trailingHeader,
+    this.startAction,
+    this.drawAction,
+    this.dropAction,
+    this.kangAction,
+  });
+
+  final String title;
+  final String? subtitle;
+  final KangRoundState round;
+  final String? primaryPlayerId;
+  final List<KangCard> selectedCards;
+  final bool Function(KangPlayerState player) canDropPlayer;
+  final bool Function(KangPlayerState player) hideCardsForPlayer;
+  final void Function(KangPlayerState player, KangCard card) onCardTap;
+  final VoidCallback? onBack;
+  final Key? backButtonKey;
+  final Widget? trailingHeader;
+  final Widget? startAction;
+  final Widget? drawAction;
+  final Widget? dropAction;
+  final Widget? kangAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final primaryPlayer = _primaryPlayer;
+    final opponents = round.players
+        .where((player) => player.id != primaryPlayer?.id)
+        .toList();
+
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(22, 14, 22, 22),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  IconButton.filled(
+                    key: backButtonKey,
+                    tooltip: 'Back',
+                    onPressed: onBack,
+                    icon: const Icon(Icons.arrow_back_rounded),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.displaySmall?.copyWith(
+                        color: AppColor.textPrimary,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                    if (showIntro) ...[
-                      const SizedBox(height: 8),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Container(
-                          width: 78,
-                          height: 78,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                colorScheme.secondaryContainer,
-                                colorScheme.primaryContainer.withValues(
-                                  alpha: 0.62,
-                                ),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColor.primaryBlueDark.withValues(
-                                  alpha: 0.09,
-                                ),
-                                blurRadius: 28,
-                                offset: const Offset(0, 14),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.style_rounded,
-                            color: AppColor.primaryBlue,
-                            size: 38,
-                          ),
-                        ),
+                  ),
+                  ...(trailingHeader == null
+                      ? const <Widget>[]
+                      : [trailingHeader!]),
+                ],
+              ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  subtitle!,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: AppColor.textSecondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 14),
+              KangRoundSummary(round: round),
+              if (round.players.isEmpty) ...[
+                const SizedBox(height: 16),
+                if (startAction != null)
+                  Align(alignment: Alignment.center, child: startAction!),
+              ] else ...[
+                const SizedBox(height: 12),
+                if (opponents.isNotEmpty) ...[
+                  _OpponentHandPanel(
+                    players: opponents,
+                    currentPlayerId: round.currentPlayer?.id,
+                    hideCardsForPlayer: hideCardsForPlayer,
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                _KangTableArea(
+                  round: round,
+                  primaryPlayerId: primaryPlayer?.id,
+                  drawAction: drawAction,
+                ),
+                const SizedBox(height: 8),
+                if (primaryPlayer != null)
+                  KangPlayerHandCard(
+                    player: primaryPlayer,
+                    isCurrent: round.currentPlayer?.id == primaryPlayer.id,
+                    canDrop: canDropPlayer(primaryPlayer),
+                    selectedCards: selectedCards,
+                    pendingDroppedCard: round.pendingDroppedCard,
+                    lastDrawnCard: round.lastDrawnCard,
+                    hideCards: hideCardsForPlayer(primaryPlayer),
+                    onCardTap: (card) => onCardTap(primaryPlayer, card),
+                  ),
+                const SizedBox(height: 12),
+                if (startAction != null)
+                  Align(alignment: Alignment.center, child: startAction!)
+                else
+                  _KangActionBar(
+                      dropAction: dropAction, kangAction: kangAction),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  KangPlayerState? get _primaryPlayer {
+    if (round.players.isEmpty) {
+      return null;
+    }
+    final id = primaryPlayerId;
+    if (id != null) {
+      for (final player in round.players) {
+        if (player.id == id) {
+          return player;
+        }
+      }
+    }
+    return round.currentPlayer ?? round.players.first;
+  }
+}
+
+class _OpponentHandPanel extends StatelessWidget {
+  const _OpponentHandPanel({
+    required this.players,
+    required this.currentPlayerId,
+    required this.hideCardsForPlayer,
+  });
+
+  final List<KangPlayerState> players;
+  final String? currentPlayerId;
+  final bool Function(KangPlayerState player) hideCardsForPlayer;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColor.surface.withValues(alpha: 0.9),
+        border: Border.all(color: AppColor.outline.withValues(alpha: 0.7)),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColor.primaryBlueDark.withValues(alpha: 0.05),
+            blurRadius: 22,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final player in players) ...[
+              _OpponentHandRow(
+                key: ValueKey('kang-player-${player.id}'),
+                player: player,
+                isCurrent: currentPlayerId == player.id,
+                hideCards: hideCardsForPlayer(player),
+              ),
+              if (player != players.last) const SizedBox(height: 14),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OpponentHandRow extends StatelessWidget {
+  const _OpponentHandRow({
+    super.key,
+    required this.player,
+    required this.isCurrent,
+    required this.hideCards,
+  });
+
+  final KangPlayerState player;
+  final bool isCurrent;
+  final bool hideCards;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final sortedHand = KangRules.sortedCards(player.hand);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: isCurrent
+            ? AppColor.blush.withValues(alpha: 0.76)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(isCurrent ? 10 : 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    kangDisplayName(player.name),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: AppColor.textPrimary,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Text(
+                  '${player.gamePoints} pts',
+                  style: textTheme.labelMedium?.copyWith(
+                    color: AppColor.blushDeep,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final card in sortedHand) ...[
+                    if (hideCards)
+                      const _CardBack()
+                    else
+                      _PlayingCard(
+                        card: card,
+                        isEnabled: false,
+                        isSelected: false,
+                        isMatchHint: false,
+                        isLastDrawn: false,
+                        onTap: () {},
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        'Kang Game',
-                        textAlign: TextAlign.center,
-                        style: textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Draw, drop, and let matching ranks bounce the turn back.',
-                        textAlign: TextAlign.center,
-                        style: textTheme.bodyLarge?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-                    KangRoundSummary(round: _round),
-                    const SizedBox(height: 18),
-                    for (final player in _round.players) ...[
-                      KangPlayerHandCard(
-                        player: player,
-                        isCurrent: _round.currentPlayer?.id == player.id,
-                        canDrop:
-                            _round.currentPlayer?.id == player.id &&
-                            (_round.turnPhase == KangTurnPhase.drew ||
-                                _round.turnPhase ==
-                                    KangTurnPhase.respondingToDrop),
-                        selectedCards: _selectedCards,
-                        pendingDroppedCard: _round.pendingDroppedCard,
-                        lastDrawnCard: _round.lastDrawnCard,
-                        onCardTap: (card) => _selectCard(player, card),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                    const SizedBox(height: 8),
-                    if (showStartAction) ...[
-                      Align(
-                        alignment: Alignment.center,
-                        child: FilledButton.icon(
-                          key: const ValueKey('kang-start-round-button'),
-                          onPressed: _startRound,
-                          icon: Icon(
-                            _round.status == KangRoundStatus.finished
-                                ? Icons.refresh_rounded
-                                : Icons.play_arrow_rounded,
-                          ),
-                          label: Text(
-                            _round.status == KangRoundStatus.finished
-                                ? 'Next round'
-                                : 'Start local round',
-                          ),
-                        ),
-                      ),
-                    ],
-                    if (showPlayActions)
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        alignment: WrapAlignment.center,
-                        children: [
-                          FilledButton.tonalIcon(
-                            key: const ValueKey('kang-draw-card-button'),
-                            onPressed:
-                                _round.status == KangRoundStatus.playing &&
-                                    _round.turnPhase == KangTurnPhase.start
-                                ? _drawCard
-                                : null,
-                            icon: const Icon(Icons.add_card_rounded),
-                            label: const Text('Draw card'),
-                          ),
-                          FilledButton.icon(
-                            key: const ValueKey('kang-drop-card-button'),
-                            onPressed: _selectedCards.isEmpty
-                                ? null
-                                : _dropSelectedCard,
-                            icon: const Icon(Icons.move_down_rounded),
-                            label: const Text('Drop card'),
-                          ),
-                          OutlinedButton.icon(
-                            key: const ValueKey('kang-declare-button'),
-                            onPressed:
-                                _round.status == KangRoundStatus.playing &&
-                                    _round.turnPhase == KangTurnPhase.start
-                                ? _declareKang
-                                : null,
-                            icon: const Icon(Icons.flag_rounded),
-                            label: const Text('Declare Kang'),
-                          ),
-                        ],
-                      ),
+                    const SizedBox(width: 10),
                   ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _KangTableArea extends StatelessWidget {
+  const _KangTableArea({
+    required this.round,
+    required this.primaryPlayerId,
+    required this.drawAction,
+  });
+
+  final KangRoundState round;
+  final String? primaryPlayerId;
+  final Widget? drawAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final droppedCards = _droppedCardsBySide;
+
+    return SizedBox(
+      height: 238,
+      child: Stack(
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            bottom: 0,
+            child: SizedBox(
+              width: 114,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '${round.drawPile.length}',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: AppColor.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  const _DrawPileCard(),
+                  if (drawAction != null) ...[
+                    const SizedBox(height: 10),
+                    SizedBox(width: 108, height: 46, child: drawAction!),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            top: 0,
+            right: 16,
+            child: _TableCardSlot(
+              label: 'Opponent',
+              cards: droppedCards.right,
+              emptyIcon: Icons.style_rounded,
+            ),
+          ),
+          Positioned(
+            left: 176,
+            bottom: 0,
+            child: _TableCardSlot(
+              label: 'Your drop',
+              cards: droppedCards.left,
+              emptyIcon: Icons.move_down_rounded,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  ({List<KangCard> left, List<KangCard> right}) get _droppedCardsBySide {
+    List<KangCard> left = const [];
+    List<KangCard> right = const [];
+    final primaryId = primaryPlayerId;
+    for (final entry in round.tableDroppedCards.entries) {
+      if (entry.value.isEmpty) {
+        continue;
+      }
+      if (entry.key == primaryId) {
+        left = entry.value;
+      } else {
+        right = entry.value;
+      }
+    }
+    if (left.isEmpty &&
+        right.isEmpty &&
+        round.pendingDroppedCard != null &&
+        round.pendingDropperIndex != null &&
+        round.pendingDropperIndex! < round.players.length) {
+      final dropper = round.players[round.pendingDropperIndex!];
+      if (dropper.id == primaryId) {
+        left = [round.pendingDroppedCard!];
+      } else {
+        right = [round.pendingDroppedCard!];
+      }
+    }
+    return (left: left, right: right);
+  }
+}
+
+class _DrawPileCard extends StatelessWidget {
+  const _DrawPileCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 104,
+      height: 136,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            left: 14,
+            top: 12,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColor.primaryBlueDark.withValues(alpha: 0.58),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const SizedBox(width: 86, height: 120),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColor.primaryBlue,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColor.primaryBlueDark.withValues(alpha: 0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 9),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: 92,
+              height: 126,
+              child: Center(
+                child: Icon(
+                  Icons.style_rounded,
+                  color: AppColor.surface.withValues(alpha: 0.9),
+                  size: 34,
                 ),
               ),
             ),
           ),
-        ),
+        ],
       ),
+    );
+  }
+}
+
+class _TableCardSlot extends StatelessWidget {
+  const _TableCardSlot({
+    required this.label,
+    required this.cards,
+    required this.emptyIcon,
+  });
+
+  final String label;
+  final List<KangCard> cards;
+  final IconData emptyIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (cards.isEmpty)
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColor.surface.withValues(alpha: 0.42),
+              border: Border.all(color: AppColor.outline),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: SizedBox(
+              width: 66,
+              height: 94,
+              child: Icon(emptyIcon, color: AppColor.textSecondary),
+            ),
+          )
+        else
+          _DroppedCardStack(cards: cards),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: AppColor.textSecondary,
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DroppedCardStack extends StatelessWidget {
+  const _DroppedCardStack({required this.cards});
+
+  final List<KangCard> cards;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleBackCards = cards.length <= 1
+        ? 0
+        : cards.length > 4
+            ? 3
+            : cards.length - 1;
+    final topCard = cards.last;
+
+    return SizedBox(
+      width: 104,
+      height: 134,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          for (var index = visibleBackCards; index > 0; index--)
+            Positioned(
+              left: index * 5,
+              top: index * 5,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColor.surfaceMuted,
+                  border: Border.all(color: AppColor.outline),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColor.primaryBlueDark.withValues(alpha: 0.05),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const SizedBox(width: 92, height: 126),
+              ),
+            ),
+          _PlayingCard(
+            card: topCard,
+            width: 92,
+            isEnabled: false,
+            isSelected: false,
+            isMatchHint: false,
+            isLastDrawn: false,
+            onTap: () {},
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _KangActionBar extends StatelessWidget {
+  const _KangActionBar({required this.dropAction, required this.kangAction});
+
+  final Widget? dropAction;
+  final Widget? kangAction;
+
+  @override
+  Widget build(BuildContext context) {
+    if (dropAction == null && kangAction == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      children: [
+        if (dropAction != null)
+          Expanded(child: SizedBox(height: 58, child: dropAction!)),
+        if (dropAction != null && kangAction != null) const SizedBox(width: 14),
+        if (kangAction != null)
+          Expanded(child: SizedBox(height: 58, child: kangAction!)),
+      ],
     );
   }
 }
@@ -351,7 +845,18 @@ class KangRoundSummary extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final winner = round.winner;
     final discardTop = round.discardTop?.id ?? '-';
-    final currentPlayer = round.currentPlayer?.name ?? '-';
+    final currentPlayer = round.currentPlayer == null
+        ? '-'
+        : kangDisplayName(round.currentPlayer!.name);
+    final roundLabel = round.status == KangRoundStatus.notStarted
+        ? 'No round started'
+        : 'Round ${round.roundNumber}';
+    final stateLabel = winner == null
+        ? kangDisplayMessage(
+            round,
+            round.message ?? 'Start a local round to test Kang rules.',
+          )
+        : '${kangDisplayName(winner.name)} wins by ${round.winReason?.name ?? 'finished'}';
 
     return DecoratedBox(
       key: key ?? const ValueKey('kang-round-summary'),
@@ -368,33 +873,51 @@ class KangRoundSummary extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              round.status == KangRoundStatus.notStarted
-                  ? 'No round started'
-                  : 'Round ${round.roundNumber}',
-              textAlign: TextAlign.center,
-              style: textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              round.message ?? 'Start a local round to test Kang rules.',
-              textAlign: TextAlign.center,
-              style: textTheme.bodyMedium?.copyWith(
-                color: AppColor.textSecondary,
-              ),
+            Row(
+              children: [
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColor.surfaceMuted,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: SizedBox(
+                    width: 92,
+                    height: 62,
+                    child: Center(
+                      child: Text(
+                        roundLabel,
+                        textAlign: TextAlign.center,
+                        style: textTheme.titleSmall?.copyWith(
+                          color: AppColor.textPrimary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    stateLabel,
+                    textAlign: TextAlign.center,
+                    style: textTheme.titleMedium?.copyWith(
+                      color: AppColor.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (round.status != KangRoundStatus.notStarted) ...[
               const SizedBox(height: 12),
               Text(
                 winner == null
                     ? 'Turn: $currentPlayer | Draw pile: ${round.drawPile.length} | Discard: $discardTop'
-                    : 'Winner: ${winner.name} | Reason: ${round.winReason?.name ?? '-'}',
+                    : 'Winner: ${kangDisplayName(winner.name)} | Reason: ${round.winReason?.name ?? '-'}',
                 textAlign: TextAlign.center,
                 style: textTheme.labelLarge?.copyWith(
                   color: AppColor.primaryBlue,
@@ -439,7 +962,7 @@ class KangPlayerHandCard extends StatelessWidget {
     final detailLabel = hideCards
         ? '${player.hand.length} cards'
         : 'Hand value: ${KangRules.handValue(player.hand)}'
-              ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
+            ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
 
     return DecoratedBox(
       key: key ?? ValueKey('kang-player-${player.id}'),
@@ -463,7 +986,7 @@ class KangPlayerHandCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    player.name,
+                    kangDisplayName(player.name),
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900,
                     ),
@@ -489,13 +1012,11 @@ class KangPlayerHandCard extends StatelessWidget {
                   else
                     _PlayingCard(
                       card: card,
-                      isEnabled:
-                          canDrop &&
+                      isEnabled: canDrop &&
                           (pendingDroppedCard == null ||
                               card.rank == pendingDroppedCard?.rank),
                       isSelected: selectedCards.contains(card),
-                      isMatchHint:
-                          pendingDroppedCard != null &&
+                      isMatchHint: pendingDroppedCard != null &&
                           card.rank == pendingDroppedCard?.rank,
                       isLastDrawn: lastDrawnCard == card,
                       onTap: () => onCardTap(card),
@@ -562,6 +1083,7 @@ class _PlayingCard extends StatelessWidget {
     required this.isMatchHint,
     required this.isLastDrawn,
     required this.onTap,
+    this.width = 58,
   });
 
   final KangCard card;
@@ -570,6 +1092,7 @@ class _PlayingCard extends StatelessWidget {
   final bool isMatchHint;
   final bool isLastDrawn;
   final VoidCallback onTap;
+  final double width;
 
   static const _assetAspectRatio = 167.0869141 / 242.6669922;
 
@@ -578,12 +1101,12 @@ class _PlayingCard extends StatelessWidget {
     final highlightColor = isSelected
         ? AppColor.blushDeep
         : isMatchHint
-        ? AppColor.warmGold
-        : isLastDrawn
-        ? const Color(0xFF2EAD5F)
-        : isEnabled
-        ? AppColor.primaryBlue
-        : AppColor.outline;
+            ? AppColor.warmGold
+            : isLastDrawn
+                ? const Color(0xFF2EAD5F)
+                : isEnabled
+                    ? AppColor.primaryBlue
+                    : AppColor.outline;
     final hasStrongHighlight = isSelected || isMatchHint || isLastDrawn;
 
     return Material(
@@ -593,7 +1116,7 @@ class _PlayingCard extends StatelessWidget {
         onTap: isEnabled ? onTap : null,
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          width: 58,
+          width: width,
           child: AspectRatio(
             aspectRatio: _assetAspectRatio,
             child: DecoratedBox(
@@ -601,11 +1124,10 @@ class _PlayingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: [
                   BoxShadow(
-                    color:
-                        (isSelected
-                                ? AppColor.blushDeep
-                                : AppColor.primaryBlueDark)
-                            .withValues(alpha: isSelected ? 0.14 : 0.05),
+                    color: (isSelected
+                            ? AppColor.blushDeep
+                            : AppColor.primaryBlueDark)
+                        .withValues(alpha: isSelected ? 0.14 : 0.05),
                     blurRadius: isSelected ? 16 : 10,
                     offset: Offset(0, isSelected ? 8 : 5),
                   ),
