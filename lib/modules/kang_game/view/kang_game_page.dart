@@ -15,14 +15,10 @@ String kangDisplayName(String name) {
   }
 
   final parts = trimmed.split(RegExp(r'\s+'));
-  final firstName = parts.first;
-  final firstLabel =
-      firstName.length > 7 ? '${firstName.substring(0, 7)}...' : firstName;
-  if (parts.length == 1) {
-    return firstLabel;
-  }
-
-  return '$firstLabel ${parts.last.characters.first}.';
+  final firstInitial = parts.first.characters.first.toUpperCase();
+  final lastInitial =
+      parts.length == 1 ? '' : parts.last.characters.first.toUpperCase();
+  return '$firstInitial$lastInitial';
 }
 
 String kangDisplayMessage(KangRoundState round, String message) {
@@ -34,6 +30,38 @@ String kangDisplayMessage(KangRoundState round, String message) {
     );
   }
   return displayMessage;
+}
+
+ButtonStyle kangDropButtonStyle() {
+  return FilledButton.styleFrom(
+    backgroundColor: AppColor.warmGold,
+    disabledBackgroundColor: const Color(0xFFB7BBC4),
+    foregroundColor: AppColor.textPrimary,
+    disabledForegroundColor: AppColor.textSecondary,
+    iconColor: AppColor.textPrimary,
+    disabledIconColor: AppColor.textSecondary,
+    minimumSize: const Size.fromHeight(54),
+    elevation: 5,
+    shadowColor: Colors.black.withValues(alpha: 0.22),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+  );
+}
+
+ButtonStyle kangKangButtonStyle() {
+  return FilledButton.styleFrom(
+    backgroundColor: AppColor.primaryBlue,
+    disabledBackgroundColor: AppColor.primaryBlue.withValues(alpha: 0.28),
+    foregroundColor: AppColor.surface,
+    disabledForegroundColor: AppColor.surface,
+    iconColor: AppColor.surface,
+    disabledIconColor: AppColor.surface,
+    minimumSize: const Size.fromHeight(54),
+    elevation: 5,
+    shadowColor: AppColor.primaryBlueDark.withValues(alpha: 0.24),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+  );
 }
 
 class KangGamePage extends StatefulWidget {
@@ -261,6 +289,7 @@ class _KangGamePageState extends State<KangGamePage> {
             dropAction: showPlayActions
                 ? FilledButton.icon(
                     key: const ValueKey('kang-drop-card-button'),
+                    style: kangDropButtonStyle(),
                     onPressed:
                         _selectedCards.isEmpty ? null : _dropSelectedCard,
                     icon: const Icon(Icons.move_down_rounded),
@@ -268,8 +297,9 @@ class _KangGamePageState extends State<KangGamePage> {
                   )
                 : null,
             kangAction: showPlayActions
-                ? OutlinedButton.icon(
+                ? FilledButton.icon(
                     key: const ValueKey('kang-declare-button'),
+                    style: kangKangButtonStyle(),
                     onPressed: _round.status == KangRoundStatus.playing &&
                             _round.turnPhase == KangTurnPhase.start
                         ? _declareKang
@@ -390,7 +420,7 @@ class KangGameBoard extends StatelessWidget {
                 ],
                 _KangTableArea(
                   round: round,
-                  primaryPlayerId: primaryPlayer?.id,
+                  primaryPlayerId: primaryPlayerId ?? primaryPlayer?.id,
                   drawAction: drawAction,
                 ),
                 const SizedBox(height: 8),
@@ -607,22 +637,33 @@ class _KangTableArea extends StatelessWidget {
               ),
             ),
           ),
-          Positioned(
-            top: 0,
-            right: 16,
-            child: _TableCardSlot(
-              label: 'Opponent',
-              cards: droppedCards.right,
-              emptyIcon: Icons.style_rounded,
-            ),
-          ),
-          Positioned(
-            left: 176,
-            bottom: 0,
-            child: _TableCardSlot(
-              label: 'Your drop',
-              cards: droppedCards.left,
-              emptyIcon: Icons.move_down_rounded,
+          Positioned.fill(
+            left: 132,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: _TableCardSlot(
+                      label: 'Your drop',
+                      cards: droppedCards.left,
+                      emptyIcon: Icons.move_down_rounded,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 28),
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: _TableCardSlot(
+                      label: 'Opponent',
+                      cards: droppedCards.right,
+                      emptyIcon: Icons.style_rounded,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -631,19 +672,20 @@ class _KangTableArea extends StatelessWidget {
   }
 
   ({List<KangCard> left, List<KangCard> right}) get _droppedCardsBySide {
-    List<KangCard> left = const [];
-    List<KangCard> right = const [];
-    final primaryId = primaryPlayerId;
-    for (final entry in round.tableDroppedCards.entries) {
-      if (entry.value.isEmpty) {
-        continue;
-      }
-      if (entry.key == primaryId) {
-        left = entry.value;
-      } else {
-        right = entry.value;
-      }
-    }
+    final primaryId = primaryPlayerId ??
+        (round.players.isEmpty ? null : round.players.first.id);
+    final opponentId = round.players
+        .where((player) => player.id != primaryId)
+        .map((player) => player.id)
+        .firstOrNull;
+
+    var left = primaryId == null
+        ? const <KangCard>[]
+        : (round.tableDroppedCards[primaryId] ?? const <KangCard>[]);
+    var right = opponentId == null
+        ? const <KangCard>[]
+        : (round.tableDroppedCards[opponentId] ?? const <KangCard>[]);
+
     if (left.isEmpty &&
         right.isEmpty &&
         round.pendingDroppedCard != null &&
@@ -763,47 +805,48 @@ class _DroppedCardStack extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleBackCards = cards.length <= 1
-        ? 0
-        : cards.length > 4
-            ? 3
-            : cards.length - 1;
     final topCard = cards.last;
+    final visibleCards =
+        cards.length > 3 ? cards.sublist(cards.length - 3) : cards;
+    final sideCards = visibleCards.take(visibleCards.length - 1).toList();
+    const cardWidth = 92.0;
+    const stackOffset = 12.0;
+    final width = sideCards.isEmpty
+        ? 104.0
+        : cardWidth + (sideCards.length * stackOffset);
 
     return SizedBox(
-      width: 104,
+      width: width,
       height: 134,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          for (var index = visibleBackCards; index > 0; index--)
+          for (var index = 0; index < sideCards.length; index++)
             Positioned(
-              left: index * 5,
-              top: index * 5,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColor.surfaceMuted,
-                  border: Border.all(color: AppColor.outline),
-                  borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColor.primaryBlueDark.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: const SizedBox(width: 92, height: 126),
+              left: index * stackOffset,
+              top: 0,
+              child: _PlayingCard(
+                card: sideCards[index],
+                width: cardWidth,
+                isEnabled: false,
+                isSelected: false,
+                isMatchHint: false,
+                isLastDrawn: false,
+                onTap: () {},
               ),
             ),
-          _PlayingCard(
-            card: topCard,
-            width: 92,
-            isEnabled: false,
-            isSelected: false,
-            isMatchHint: false,
-            isLastDrawn: false,
-            onTap: () {},
+          Positioned(
+            left: sideCards.length * stackOffset,
+            top: 0,
+            child: _PlayingCard(
+              card: topCard,
+              width: cardWidth,
+              isEnabled: false,
+              isSelected: false,
+              isMatchHint: false,
+              isLastDrawn: false,
+              onTap: () {},
+            ),
           ),
         ],
       ),
@@ -826,10 +869,10 @@ class _KangActionBar extends StatelessWidget {
     return Row(
       children: [
         if (dropAction != null)
-          Expanded(child: SizedBox(height: 58, child: dropAction!)),
+          Expanded(flex: 5, child: SizedBox(height: 54, child: dropAction!)),
         if (dropAction != null && kangAction != null) const SizedBox(width: 14),
         if (kangAction != null)
-          Expanded(child: SizedBox(height: 58, child: kangAction!)),
+          Expanded(flex: 3, child: SizedBox(height: 54, child: kangAction!)),
       ],
     );
   }

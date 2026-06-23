@@ -181,6 +181,7 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
                       key: const ValueKey(
                         'kang-multiplayer-drop-card-button',
                       ),
+                      style: kangDropButtonStyle(),
                       onPressed: canPlay && selectedCards.isNotEmpty
                           ? () => _submit(
                                 (userId) => widget.repository.dropCards(
@@ -195,8 +196,9 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
                     ),
               kangAction: canStartRound
                   ? null
-                  : OutlinedButton.icon(
+                  : FilledButton.icon(
                       key: const ValueKey('kang-multiplayer-declare-button'),
+                      style: kangKangButtonStyle(),
                       onPressed:
                           canPlay && round.turnPhase == KangTurnPhase.start
                               ? () => _submit(
