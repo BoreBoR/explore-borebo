@@ -6,6 +6,7 @@ import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class KangGamePage extends StatefulWidget {
   const KangGamePage({super.key, this.controller, this.initialRound});
@@ -140,6 +141,7 @@ class _KangGamePageState extends State<KangGamePage> {
       final reasonLabel = switch (reason) {
         KangWinReason.kang => 'Kang',
         KangWinReason.winOut => 'Win Out',
+        KangWinReason.emptyHand => 'Empty Hand',
         KangWinReason.draw => 'Draw',
         null => 'Finished',
       };
@@ -254,10 +256,10 @@ class _KangGamePageState extends State<KangGamePage> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                    _RoundSummary(round: _round),
+                    KangRoundSummary(round: _round),
                     const SizedBox(height: 18),
                     for (final player in _round.players) ...[
-                      _PlayerHandCard(
+                      KangPlayerHandCard(
                         player: player,
                         isCurrent: _round.currentPlayer?.id == player.id,
                         canDrop:
@@ -339,8 +341,8 @@ class _KangGamePageState extends State<KangGamePage> {
   }
 }
 
-class _RoundSummary extends StatelessWidget {
-  const _RoundSummary({required this.round});
+class KangRoundSummary extends StatelessWidget {
+  const KangRoundSummary({super.key, required this.round});
 
   final KangRoundState round;
 
@@ -352,7 +354,7 @@ class _RoundSummary extends StatelessWidget {
     final currentPlayer = round.currentPlayer?.name ?? '-';
 
     return DecoratedBox(
-      key: const ValueKey('kang-round-summary'),
+      key: key ?? const ValueKey('kang-round-summary'),
       decoration: BoxDecoration(
         color: AppColor.surface.withValues(alpha: 0.9),
         border: Border.all(color: AppColor.outline.withValues(alpha: 0.72)),
@@ -407,8 +409,9 @@ class _RoundSummary extends StatelessWidget {
   }
 }
 
-class _PlayerHandCard extends StatelessWidget {
-  const _PlayerHandCard({
+class KangPlayerHandCard extends StatelessWidget {
+  const KangPlayerHandCard({
+    super.key,
     required this.player,
     required this.isCurrent,
     required this.canDrop,
@@ -416,6 +419,7 @@ class _PlayerHandCard extends StatelessWidget {
     required this.pendingDroppedCard,
     required this.lastDrawnCard,
     required this.onCardTap,
+    this.hideCards = false,
   });
 
   final KangPlayerState player;
@@ -425,15 +429,20 @@ class _PlayerHandCard extends StatelessWidget {
   final KangCard? pendingDroppedCard;
   final KangCard? lastDrawnCard;
   final ValueChanged<KangCard> onCardTap;
+  final bool hideCards;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final matchingRanks = KangRules.availablePairRanks(player.hand);
     final sortedHand = KangRules.sortedCards(player.hand);
+    final detailLabel = hideCards
+        ? '${player.hand.length} cards'
+        : 'Hand value: ${KangRules.handValue(player.hand)}'
+              ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
 
     return DecoratedBox(
-      key: ValueKey('kang-player-${player.id}'),
+      key: key ?? ValueKey('kang-player-${player.id}'),
       decoration: BoxDecoration(
         color: isCurrent
             ? AppColor.blush.withValues(alpha: 0.76)
@@ -475,32 +484,70 @@ class _PlayerHandCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 for (final card in sortedHand)
-                  _PlayingCard(
-                    card: card,
-                    isEnabled:
-                        canDrop &&
-                        (pendingDroppedCard == null ||
-                            card.rank == pendingDroppedCard?.rank),
-                    isSelected: selectedCards.contains(card),
-                    isMatchHint:
-                        pendingDroppedCard != null &&
-                        card.rank == pendingDroppedCard?.rank,
-                    isLastDrawn: lastDrawnCard == card,
-                    onTap: () => onCardTap(card),
-                  ),
+                  if (hideCards)
+                    const _CardBack()
+                  else
+                    _PlayingCard(
+                      card: card,
+                      isEnabled:
+                          canDrop &&
+                          (pendingDroppedCard == null ||
+                              card.rank == pendingDroppedCard?.rank),
+                      isSelected: selectedCards.contains(card),
+                      isMatchHint:
+                          pendingDroppedCard != null &&
+                          card.rank == pendingDroppedCard?.rank,
+                      isLastDrawn: lastDrawnCard == card,
+                      onTap: () => onCardTap(card),
+                    ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
-              '${isCurrent ? 'Current turn | ' : ''}'
-              'Hand value: ${KangRules.handValue(player.hand)}'
-              ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}',
+              '${isCurrent ? 'Current turn | ' : ''}$detailLabel',
               style: textTheme.bodySmall?.copyWith(
                 color: AppColor.textSecondary,
                 fontWeight: FontWeight.w700,
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CardBack extends StatelessWidget {
+  const _CardBack();
+
+  static const _assetAspectRatio = 167.0869141 / 242.6669922;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 58,
+      child: AspectRatio(
+        aspectRatio: _assetAspectRatio,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColor.primaryBlue,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: AppColor.primaryBlueDark),
+            boxShadow: [
+              BoxShadow(
+                color: AppColor.primaryBlueDark.withValues(alpha: 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Icon(
+              Icons.style_rounded,
+              size: 24,
+              color: AppColor.surface.withValues(alpha: 0.9),
+            ),
+          ),
         ),
       ),
     );
@@ -524,9 +571,20 @@ class _PlayingCard extends StatelessWidget {
   final bool isLastDrawn;
   final VoidCallback onTap;
 
+  static const _assetAspectRatio = 167.0869141 / 242.6669922;
+
   @override
   Widget build(BuildContext context) {
-    final color = card.suit.isRed ? AppColor.blushDeep : AppColor.textPrimary;
+    final highlightColor = isSelected
+        ? AppColor.blushDeep
+        : isMatchHint
+        ? AppColor.warmGold
+        : isLastDrawn
+        ? const Color(0xFF2EAD5F)
+        : isEnabled
+        ? AppColor.primaryBlue
+        : AppColor.outline;
+    final hasStrongHighlight = isSelected || isMatchHint || isLastDrawn;
 
     return Material(
       color: Colors.transparent,
@@ -534,40 +592,54 @@ class _PlayingCard extends StatelessWidget {
         key: ValueKey('kang-card-${card.id}'),
         onTap: isEnabled ? onTap : null,
         borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: 54,
-          height: isSelected ? 78 : 72,
-          decoration: BoxDecoration(
-            color: AppColor.surface,
-            border: Border.all(
-              color: isSelected
-                  ? AppColor.blushDeep
-                  : isMatchHint
-                  ? AppColor.warmGold
-                  : isLastDrawn
-                  ? const Color(0xFF2EAD5F)
-                  : isEnabled
-                  ? AppColor.primaryBlue
-                  : AppColor.outline,
-              width: isSelected || isMatchHint || isLastDrawn ? 2 : 1,
-            ),
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color:
-                    (isSelected ? AppColor.blushDeep : AppColor.primaryBlueDark)
-                        .withValues(alpha: isSelected ? 0.14 : 0.05),
-                blurRadius: isSelected ? 16 : 10,
-                offset: Offset(0, isSelected ? 8 : 5),
+        child: SizedBox(
+          width: 58,
+          child: AspectRatio(
+            aspectRatio: _assetAspectRatio,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                boxShadow: [
+                  BoxShadow(
+                    color:
+                        (isSelected
+                                ? AppColor.blushDeep
+                                : AppColor.primaryBlueDark)
+                            .withValues(alpha: isSelected ? 0.14 : 0.05),
+                    blurRadius: isSelected ? 16 : 10,
+                    offset: Offset(0, isSelected ? 8 : 5),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Center(
-            child: Text(
-              card.id,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w900,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: ColoredBox(
+                      color: AppColor.surface,
+                      child: Padding(
+                        padding: const EdgeInsets.all(1.5),
+                        child: SvgPicture.asset(
+                          card.assetPath,
+                          fit: BoxFit.contain,
+                          semanticsLabel: card.id,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: highlightColor,
+                          width: hasStrongHighlight ? 2 : 1,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -131,10 +131,23 @@ class ModeSelectPage extends StatelessWidget {
                                   key: const ValueKey('kang-game-mode-button'),
                                   icon: Icons.style_rounded,
                                   title: 'Kang Game',
-                                  subtitle: 'Test local Thai Kang rules',
+                                  subtitle: 'Play local Thai Kang rules',
                                   onTap: () {
                                     Modular.to.navigate(
                                       KangGamePageType.kangGame.path,
+                                    );
+                                  },
+                                ),
+                                _ModeButton(
+                                  key: const ValueKey(
+                                    'kang-multiplayer-mode-button',
+                                  ),
+                                  icon: Icons.groups_rounded,
+                                  title: 'Kang Online',
+                                  subtitle: 'Create or join a live match',
+                                  onTap: () {
+                                    Modular.to.navigate(
+                                      KangGamePageType.multiplayerLobby.path,
                                     );
                                   },
                                 ),

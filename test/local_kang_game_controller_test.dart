@@ -55,7 +55,11 @@ void main() {
         KangPlayerState(
           id: 'benji',
           name: 'Benji',
-          hand: [matchingCard, secondMatchingCard],
+          hand: [
+            matchingCard,
+            secondMatchingCard,
+            card(KangRank.nine, KangSuit.diamonds),
+          ],
         ),
       ],
       drawPile: const [],
@@ -77,7 +81,7 @@ void main() {
     expect(next.turnPhase, KangTurnPhase.start);
     expect(next.pendingDroppedCard, isNull);
     expect(next.discardPile, [droppedCard, matchingCard, secondMatchingCard]);
-    expect(next.players[1].hand, isEmpty);
+    expect(next.players[1].hand, [card(KangRank.nine, KangSuit.diamonds)]);
   });
 
   test('dropping without opponent match passes turn', () {
@@ -85,7 +89,11 @@ void main() {
     final droppedCard = card(KangRank.ace, KangSuit.spades);
     final state = KangRoundState(
       players: [
-        KangPlayerState(id: 'you', name: 'You', hand: [droppedCard]),
+        KangPlayerState(
+          id: 'you',
+          name: 'You',
+          hand: [droppedCard, card(KangRank.five, KangSuit.clubs)],
+        ),
         KangPlayerState(
           id: 'benji',
           name: 'Benji',
@@ -138,5 +146,98 @@ void main() {
     expect(next.players[0].hand, isNot(contains(secondFour)));
     expect(next.players[0].hand, hasLength(1));
     expect(next.currentPlayer?.id, 'benji');
+  });
+
+  test('current player wins one point when dropping every card', () {
+    final controller = LocalKangGameController();
+    final firstFour = card(KangRank.four, KangSuit.spades);
+    final secondFour = card(KangRank.four, KangSuit.hearts);
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(id: 'you', name: 'You', hand: [firstFour, secondFour]),
+        KangPlayerState(
+          id: 'benji',
+          name: 'Benji',
+          hand: [card(KangRank.four, KangSuit.diamonds)],
+        ),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.drew,
+    );
+
+    final next = controller.dropCards(state, [firstFour, secondFour]);
+
+    expect(next.status, KangRoundStatus.finished);
+    expect(next.winnerId, 'you');
+    expect(next.winReason, KangWinReason.emptyHand);
+    expect(next.players[0].gamePoints, 1);
+    expect(next.players[0].hand, isEmpty);
+  });
+
+  test('opponent response wins one point and risks losing two next round', () {
+    final controller = LocalKangGameController();
+    final droppedCard = card(KangRank.ace, KangSuit.spades);
+    final matchingCard = card(KangRank.ace, KangSuit.hearts);
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(id: 'you', name: 'You', hand: const []),
+        KangPlayerState(id: 'benji', name: 'Benji', hand: [matchingCard]),
+      ],
+      drawPile: const [],
+      discardPile: [droppedCard],
+      currentTurnIndex: 1,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.respondingToDrop,
+      pendingDroppedCard: droppedCard,
+      pendingDropperIndex: 0,
+    );
+
+    final next = controller.respondToDroppedCard(state, matchingCard);
+
+    expect(next.status, KangRoundStatus.finished);
+    expect(next.winnerId, 'benji');
+    expect(next.winReason, KangWinReason.emptyHand);
+    expect(next.players[1].gamePoints, 1);
+    expect(next.players[1].pendingLossPenaltyPoints, 2);
+    expect(next.players[1].hand, isEmpty);
+  });
+
+  test('pending response-empty penalty is lost only on next round loss', () {
+    final controller = LocalKangGameController();
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(
+          id: 'you',
+          name: 'You',
+          hand: [card(KangRank.two, KangSuit.spades)],
+          gamePoints: 0,
+        ),
+        KangPlayerState(
+          id: 'benji',
+          name: 'Benji',
+          hand: [card(KangRank.king, KangSuit.hearts)],
+          gamePoints: 1,
+          pendingLossPenaltyPoints: 2,
+        ),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 0,
+      roundNumber: 2,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.start,
+    );
+
+    final next = controller.declareKang(state, 'you');
+
+    expect(next.winnerId, 'you');
+    expect(next.players[0].gamePoints, 1);
+    expect(next.players[1].gamePoints, -1);
+    expect(next.players[1].pendingLossPenaltyPoints, 0);
   });
 }

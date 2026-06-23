@@ -1,5 +1,6 @@
 import 'package:benjii/modules/auth/service/google_auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -12,13 +13,25 @@ class GoogleSignInButton extends StatefulWidget {
 
 class _GoogleSignInButtonState extends State<GoogleSignInButton> {
   bool _isLoading = false;
-  bool _isSignedIn = false;
 
-  Future<void> _openSignInDialog() async {
+  String _userLabel(User? user) {
+    final displayName = user?.displayName;
+    if (displayName != null && displayName.trim().isNotEmpty) {
+      return displayName.trim();
+    }
+    final email = user?.email;
+    if (email != null && email.trim().isNotEmpty) {
+      return email.trim();
+    }
+    return 'Google';
+  }
+
+  Future<void> _openSignInDialog(User? user) async {
     if (_isLoading) {
       return;
     }
 
+    final isSignedIn = user != null;
     await showDialog<void>(
       context: context,
       builder: (context) {
@@ -27,14 +40,14 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
 
         return AlertDialog(
           key: const ValueKey('sign-in-method-dialog'),
-          title: Text(_isSignedIn ? 'Account' : 'Sign in'),
+          title: Text(isSignedIn ? 'Account' : 'Sign in'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                _isSignedIn
-                    ? 'You are currently signed in.'
+                isSignedIn
+                    ? 'Signed in as ${_userLabel(user)}.'
                     : 'Choose how you want to continue.',
                 style: textTheme.bodyMedium?.copyWith(
                   color: colorScheme.onSurfaceVariant,
@@ -47,10 +60,10 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                   Navigator.of(context).pop();
                   _handleGooglePressed();
                 },
-                icon: _isSignedIn
+                icon: isSignedIn
                     ? const Icon(Icons.logout_rounded)
                     : const _GoogleMark(),
-                label: Text(_isSignedIn ? 'Sign out' : 'Continue with Google'),
+                label: Text(isSignedIn ? 'Sign out' : 'Continue with Google'),
               ),
             ],
           ),
@@ -67,12 +80,15 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
     setState(() => _isLoading = true);
 
     try {
-      if (_isSignedIn) {
+      if (Firebase.apps.isEmpty) {
+        _showMessage('Firebase is not ready yet.');
+        return;
+      }
+
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
         await GoogleAuthService.instance.signOut();
         _showMessage('Signed out');
-        if (mounted) {
-          setState(() => _isSignedIn = false);
-        }
       } else {
         final credential = await GoogleAuthService.instance.signInWithGoogle();
         final displayName = credential.user?.displayName;
@@ -81,9 +97,6 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
               ? 'Signed in with Google'
               : 'Signed in as $displayName',
         );
-        if (mounted) {
-          setState(() => _isSignedIn = true);
-        }
       }
     } on FirebaseAuthException catch (error) {
       _showMessage('Google sign-in failed: ${error.code}');
@@ -110,11 +123,56 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
 
   @override
   Widget build(BuildContext context) {
+    if (Firebase.apps.isEmpty) {
+      return _GoogleSignInButtonContent(
+        isLoading: false,
+        isSignedIn: false,
+        label: 'Sign in',
+        onTap: () => _showMessage('Firebase is not ready yet.'),
+      );
+    }
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+        final isSignedIn = user != null;
+        final label = isSignedIn
+            ? 'Signed in as ${_userLabel(user)}'
+            : 'Sign in';
+
+        return _GoogleSignInButtonContent(
+          isLoading: _isLoading,
+          isSignedIn: isSignedIn,
+          label: label,
+          onTap: () => _openSignInDialog(user),
+        );
+      },
+    );
+  }
+}
+
+class _GoogleSignInButtonContent extends StatelessWidget {
+  const _GoogleSignInButtonContent({
+    required this.isLoading,
+    required this.isSignedIn,
+    required this.label,
+    required this.onTap,
+  });
+
+  final bool isLoading;
+  final bool isSignedIn;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Semantics(
       button: true,
-      label: _isSignedIn ? 'Sign out' : 'Sign in',
+      label: isSignedIn ? 'Sign out' : 'Sign in',
       child: Material(
         key: const ValueKey('google-sign-in-button'),
         color: colorScheme.surface.withValues(alpha: 0.92),
@@ -123,13 +181,13 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
         borderRadius: BorderRadius.circular(18),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: _openSignInDialog,
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _isLoading
+                isLoading
                     ? SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(
@@ -138,7 +196,7 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                         ),
                       )
                     : Icon(
-                        _isSignedIn
+                        isSignedIn
                             ? Icons.account_circle_rounded
                             : Icons.login_rounded,
                         color: colorScheme.primary,
@@ -146,11 +204,12 @@ class _GoogleSignInButtonState extends State<GoogleSignInButton> {
                       ),
                 const SizedBox(width: 8),
                 Text(
-                  _isSignedIn ? 'Signed in' : 'Sign in',
+                  label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

@@ -16,21 +16,31 @@ class LocalKangGameController {
     final drawPile = deck.skip(11).toList();
     final discardPile = [deck[10]];
 
+    final previousSeats = previous.players.length >= 2
+        ? previous.players.take(2).toList()
+        : const [
+            KangPlayerState(id: 'you', name: 'You', hand: []),
+            KangPlayerState(id: 'benji', name: 'Benji', hand: []),
+          ];
     final previousPlayers = {
       for (final player in previous.players) player.id: player,
     };
     final players = [
       KangPlayerState(
-        id: 'you',
-        name: 'You',
+        id: previousSeats[0].id,
+        name: previousSeats[0].name,
         hand: youHand,
-        gamePoints: previousPlayers['you']?.gamePoints ?? 0,
+        gamePoints: previousPlayers[previousSeats[0].id]?.gamePoints ?? 0,
+        pendingLossPenaltyPoints:
+            previousPlayers[previousSeats[0].id]?.pendingLossPenaltyPoints ?? 0,
       ),
       KangPlayerState(
-        id: 'benji',
-        name: 'Benji',
+        id: previousSeats[1].id,
+        name: previousSeats[1].name,
         hand: benjiHand,
-        gamePoints: previousPlayers['benji']?.gamePoints ?? 0,
+        gamePoints: previousPlayers[previousSeats[1].id]?.gamePoints ?? 0,
+        pendingLossPenaltyPoints:
+            previousPlayers[previousSeats[1].id]?.pendingLossPenaltyPoints ?? 0,
       ),
     ];
 
@@ -157,6 +167,27 @@ class LocalKangGameController {
     }
     final discardPile = [...state.discardPile, ...cards];
     final updatedCurrent = current.copyWith(hand: currentHand);
+    final players = state.players.map((player) {
+      if (player.id == updatedCurrent.id) {
+        return updatedCurrent;
+      }
+      return player;
+    }).toList();
+    if (updatedCurrent.hand.isEmpty) {
+      return _finishRound(
+        state.copyWith(
+          players: players,
+          discardPile: discardPile,
+          clearPendingDrop: true,
+          clearLastDrawnCard: true,
+        ),
+        winnerId: updatedCurrent.id,
+        reason: KangWinReason.emptyHand,
+        pointsOverride: 1,
+        message: '${updatedCurrent.name} dropped every card and wins.',
+      );
+    }
+
     var nextTurnIndex = opponentIndex;
     final droppedLabels = cards.map((card) => card.id).join(', ');
     var message =
@@ -175,13 +206,6 @@ class LocalKangGameController {
           '${current.name} dropped $droppedLabels. '
           '${opponent.name} has a matching rank and must choose it.';
     }
-
-    final players = state.players.map((player) {
-      if (player.id == updatedCurrent.id) {
-        return updatedCurrent;
-      }
-      return player;
-    }).toList();
 
     return state.copyWith(
       players: players,
@@ -241,6 +265,24 @@ class LocalKangGameController {
         )
         .toList();
     final dropper = state.players[pendingDropperIndex];
+    if (updatedCurrent.hand.isEmpty) {
+      return _finishRound(
+        state.copyWith(
+          players: players,
+          discardPile: [...state.discardPile, ...cards],
+          currentTurnIndex: pendingDropperIndex,
+          clearPendingDrop: true,
+          clearLastDrawnCard: true,
+        ),
+        winnerId: updatedCurrent.id,
+        reason: KangWinReason.emptyHand,
+        pointsOverride: 1,
+        winnerPendingLossPenaltyPoints: 2,
+        message:
+            '${updatedCurrent.name} matched every card and wins. '
+            'If they lose next round, they lose 2 points.',
+      );
+    }
 
     return state.copyWith(
       players: players,
@@ -259,14 +301,21 @@ class LocalKangGameController {
     required String winnerId,
     required KangWinReason reason,
     required String message,
+    int? pointsOverride,
+    int winnerPendingLossPenaltyPoints = 0,
   }) {
     final players = state.players.map((player) {
-      if (player.id != winnerId) {
-        return player;
+      if (player.id == winnerId) {
+        return player.copyWith(
+          gamePoints:
+              player.gamePoints +
+              (pointsOverride ?? KangRules.pointsForWinningHand(player.hand)),
+          pendingLossPenaltyPoints: winnerPendingLossPenaltyPoints,
+        );
       }
       return player.copyWith(
-        gamePoints:
-            player.gamePoints + KangRules.pointsForWinningHand(player.hand),
+        gamePoints: player.gamePoints - player.pendingLossPenaltyPoints,
+        pendingLossPenaltyPoints: 0,
       );
     }).toList();
 
