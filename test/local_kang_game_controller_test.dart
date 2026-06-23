@@ -137,6 +137,39 @@ void main() {
     });
   });
 
+  test('normal drop keeps the other player dropped card visible', () {
+    final controller = LocalKangGameController();
+    final firstPlayerDrop = card(KangRank.king, KangSuit.hearts);
+    final secondPlayerDrop = card(KangRank.seven, KangSuit.hearts);
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(id: 'you', name: 'You', hand: const []),
+        KangPlayerState(
+          id: 'benji',
+          name: 'Benji',
+          hand: [secondPlayerDrop, card(KangRank.nine, KangSuit.diamonds)],
+        ),
+      ],
+      drawPile: const [],
+      discardPile: [firstPlayerDrop],
+      currentTurnIndex: 1,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.drew,
+      tableDroppedCards: {
+        'you': [firstPlayerDrop],
+      },
+    );
+
+    final next = controller.dropCard(state, secondPlayerDrop);
+
+    expect(next.discardPile, [firstPlayerDrop, secondPlayerDrop]);
+    expect(next.tableDroppedCards, {
+      'you': [firstPlayerDrop],
+      'benji': [secondPlayerDrop],
+    });
+  });
+
   test('dropping without opponent match passes turn', () {
     final controller = LocalKangGameController();
     final droppedCard = card(KangRank.ace, KangSuit.spades);
