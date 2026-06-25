@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:benjii/modules/kang_game/model/kang_card.dart';
 import 'package:benjii/modules/kang_game/model/kang_multiplayer_match.dart';
 import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
@@ -27,9 +29,20 @@ class KangMultiplayerGamePage extends StatefulWidget {
 class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
   final ValueNotifier<List<KangCard>> _selectedCards = ValueNotifier([]);
   final ValueNotifier<bool> _isSubmitting = ValueNotifier(false);
+  Timer? _keepAliveTimer;
   String? _lastShownRoundResultKey;
 
   User? get _user => FirebaseAuth.instance.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _keepMatchAlive();
+    _keepAliveTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _keepMatchAlive(),
+    );
+  }
 
   Future<void> _submit(Future<void> Function(String userId) action) async {
     final user = _user;
@@ -45,6 +58,22 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
       _showMessage(error.toString());
     } finally {
       _isSubmitting.value = false;
+    }
+  }
+
+  Future<void> _keepMatchAlive() async {
+    final user = _user;
+    if (user == null) {
+      return;
+    }
+
+    try {
+      await widget.repository.keepMatchAlive(
+        matchId: widget.matchId,
+        userId: user.uid,
+      );
+    } catch (_) {
+      // Keep-alive is best-effort; the match stream will surface real errors.
     }
   }
 
@@ -78,6 +107,7 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
 
   @override
   void dispose() {
+    _keepAliveTimer?.cancel();
     _selectedCards.dispose();
     _isSubmitting.dispose();
     super.dispose();
@@ -91,17 +121,19 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
     final isYourTurn = round.currentPlayer?.id == user.uid;
     final statusText = match.isReady
         ? isYourTurn
-            ? 'Your turn'
-            : 'Waiting for ${round.currentPlayer == null ? 'opponent' : kangDisplayName(round.currentPlayer!.name)}'
+              ? 'Your turn'
+              : 'Waiting for ${round.currentPlayer == null ? 'opponent' : kangDisplayName(round.currentPlayer!.name)}'
         : 'Waiting for another player to join.';
-    final canStartRound = match.isReady &&
+    final canStartRound =
+        match.isReady &&
         (round.status == KangRoundStatus.notStarted ||
             round.status == KangRoundStatus.finished);
 
     return ValueListenableBuilder<bool>(
       valueListenable: _isSubmitting,
       builder: (context, isSubmitting, _) {
-        final canPlay = match.isReady &&
+        final canPlay =
+            match.isReady &&
             round.status == KangRoundStatus.playing &&
             isYourTurn &&
             !isSubmitting;
@@ -119,16 +151,18 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
               backButtonKey: const ValueKey('kang-multiplayer-back-button'),
               trailingHeader: SelectableText(
                 'Match ${match.id}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: AppColor.textSecondary,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.labelSmall?.copyWith(color: AppColor.textSecondary),
               ),
               canDropPlayer: (player) =>
                   canPlay &&
                   player.id == user.uid &&
                   (round.turnPhase == KangTurnPhase.drew ||
                       round.turnPhase == KangTurnPhase.respondingToDrop),
-              hideCardsForPlayer: (player) => player.id != user.uid,
+              hideCardsForPlayer: (player) =>
+                  player.id != user.uid &&
+                  round.status != KangRoundStatus.finished,
               onCardTap: (player, card) => _selectCard(round, player, card),
               startAction: canStartRound
                   ? FilledButton.icon(
@@ -138,11 +172,11 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
                       onPressed: isSubmitting
                           ? null
                           : () => _submit(
-                                (userId) => widget.repository.startRound(
-                                  matchId: match.id,
-                                  userId: userId,
-                                ),
+                              (userId) => widget.repository.startRound(
+                                matchId: match.id,
+                                userId: userId,
                               ),
+                            ),
                       icon: Icon(
                         round.status == KangRoundStatus.finished
                             ? Icons.refresh_rounded
@@ -158,19 +192,18 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
               drawAction: canStartRound
                   ? null
                   : FilledButton.tonalIcon(
-                      key: const ValueKey(
-                        'kang-multiplayer-draw-card-button',
-                      ),
-                      onPressed: canPlay &&
+                      key: const ValueKey('kang-multiplayer-draw-card-button'),
+                      onPressed:
+                          canPlay &&
                               (round.turnPhase == KangTurnPhase.start ||
                                   round.turnPhase ==
                                       KangTurnPhase.respondingToDrop)
                           ? () => _submit(
-                                (userId) => widget.repository.draw(
-                                  matchId: match.id,
-                                  userId: userId,
-                                ),
-                              )
+                              (userId) => widget.repository.draw(
+                                matchId: match.id,
+                                userId: userId,
+                              ),
+                            )
                           : null,
                       icon: const Icon(Icons.add_card_rounded),
                       label: const Text('Draw'),
@@ -178,18 +211,16 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
               dropAction: canStartRound
                   ? null
                   : FilledButton.icon(
-                      key: const ValueKey(
-                        'kang-multiplayer-drop-card-button',
-                      ),
+                      key: const ValueKey('kang-multiplayer-drop-card-button'),
                       style: kangDropButtonStyle(),
                       onPressed: canPlay && selectedCards.isNotEmpty
                           ? () => _submit(
-                                (userId) => widget.repository.dropCards(
-                                  matchId: match.id,
-                                  userId: userId,
-                                  cards: selectedCards,
-                                ),
-                              )
+                              (userId) => widget.repository.dropCards(
+                                matchId: match.id,
+                                userId: userId,
+                                cards: selectedCards,
+                              ),
+                            )
                           : null,
                       icon: const Icon(Icons.move_down_rounded),
                       label: const Text('Drop'),
@@ -201,13 +232,13 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
                       style: kangKangButtonStyle(),
                       onPressed:
                           canPlay && round.turnPhase == KangTurnPhase.start
-                              ? () => _submit(
-                                    (userId) => widget.repository.declareKang(
-                                      matchId: match.id,
-                                      userId: userId,
-                                    ),
-                                  )
-                              : null,
+                          ? () => _submit(
+                              (userId) => widget.repository.declareKang(
+                                matchId: match.id,
+                                userId: userId,
+                              ),
+                            )
+                          : null,
                       icon: const Icon(Icons.flag_rounded),
                       label: const Text('Kang!'),
                     ),
@@ -267,7 +298,7 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
       final body = winner == null
           ? round.message ?? 'No winner this round.'
           : '${winner.name} wins by $reasonLabel.\n'
-              'Total points: ${winner.gamePoints}';
+                'Total points: ${winner.gamePoints}';
 
       showDialog<void>(
         context: context,

@@ -5,6 +5,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  KangRoundState roundWithOpponentStatus(KangRoundStatus status) {
+    return KangRoundState(
+      players: const [
+        KangPlayerState(
+          id: 'you',
+          name: 'You',
+          hand: [KangCard(rank: KangRank.two, suit: KangSuit.hearts)],
+        ),
+        KangPlayerState(
+          id: 'opponent',
+          name: 'Opponent',
+          hand: [KangCard(rank: KangRank.ace, suit: KangSuit.spades)],
+        ),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      status: status,
+      turnPhase: KangTurnPhase.start,
+      winnerId: status == KangRoundStatus.finished ? 'you' : null,
+      winReason: status == KangRoundStatus.finished ? KangWinReason.kang : null,
+    );
+  }
+
   testWidgets('shows a dialog when Kang declaration wins the round', (
     tester,
   ) async {
@@ -67,5 +92,55 @@ void main() {
       find.byKey(const ValueKey('kang-round-result-dialog')),
       findsNothing,
     );
+  });
+
+  testWidgets('reveals opponent hand when multiplayer round is finished', (
+    tester,
+  ) async {
+    final round = roundWithOpponentStatus(KangRoundStatus.finished);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KangGameBoard(
+            title: 'Kang Multiplayer',
+            round: round,
+            primaryPlayerId: 'you',
+            selectedCards: const [],
+            canDropPlayer: (_) => false,
+            hideCardsForPlayer: (player) =>
+                player.id != 'you' && round.status != KangRoundStatus.finished,
+            onCardTap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('kang-card-AS')), findsOneWidget);
+  });
+
+  testWidgets('keeps opponent hand hidden while multiplayer round is playing', (
+    tester,
+  ) async {
+    final round = roundWithOpponentStatus(KangRoundStatus.playing);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KangGameBoard(
+            title: 'Kang Multiplayer',
+            round: round,
+            primaryPlayerId: 'you',
+            selectedCards: const [],
+            canDropPlayer: (_) => false,
+            hideCardsForPlayer: (player) =>
+                player.id != 'you' && round.status != KangRoundStatus.finished,
+            onCardTap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const ValueKey('kang-card-AS')), findsNothing);
   });
 }

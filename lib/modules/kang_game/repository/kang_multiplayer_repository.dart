@@ -49,6 +49,44 @@ class KangMultiplayerRepository {
     });
   }
 
+  Future<void> cleanupInactiveMatches({
+    Duration maxIdle = const Duration(minutes: 5),
+  }) async {
+    final cutoff = Timestamp.fromDate(DateTime.now().subtract(maxIdle));
+    final snapshot = await _matches
+        .where('updatedAt', isLessThan: cutoff)
+        .limit(20)
+        .get();
+    if (snapshot.docs.isEmpty) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+    for (final doc in snapshot.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+  }
+
+  Future<void> keepMatchAlive({
+    required String matchId,
+    required String userId,
+  }) async {
+    final ref = _matches.doc(matchId);
+    final snapshot = await ref.get();
+    final data = snapshot.data();
+    if (data == null) {
+      return;
+    }
+
+    final match = KangMultiplayerMatch.fromFirestore(snapshot.id, data);
+    if (!match.isPlayer(userId)) {
+      return;
+    }
+
+    await ref.update({'updatedAt': FieldValue.serverTimestamp()});
+  }
+
   Future<String> createMatch({
     required String hostUserId,
     required String hostName,

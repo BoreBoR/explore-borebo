@@ -24,6 +24,12 @@ service cloud.firestore {
         && matchData.status == 'waiting';
     }
 
+    function isInactiveMatch(matchData) {
+      return signedIn()
+        && matchData.updatedAt is timestamp
+        && request.time > matchData.updatedAt + duration.value(5, 'm');
+    }
+
     match /kang_rooms/{roomId} {
       allow create: if signedIn()
         && request.resource.data.playerIds is list
@@ -75,7 +81,10 @@ service cloud.firestore {
         );
 
       allow delete: if signedIn()
-        && request.auth.uid == resource.data.hostUserId;
+        && (
+          request.auth.uid == resource.data.hostUserId
+          || isInactiveMatch(resource.data)
+        );
     }
   }
 }

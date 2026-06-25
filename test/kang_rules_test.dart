@@ -1,9 +1,12 @@
 import 'package:benjii/modules/kang_game/model/kang_card.dart';
 import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
 import 'package:benjii/modules/kang_game/model/kang_rules.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   KangCard card(KangRank rank, KangSuit suit) {
     return KangCard(rank: rank, suit: suit);
   }
@@ -162,5 +165,11 @@ void main() {
     ]);
     expect(restored.lastDrawnCard, card(KangRank.king, KangSuit.clubs));
     expect(restored.message, 'Guest must respond.');
+  });
+
+  test('every Kang card maps to a bundled SVG asset', () async {
+    for (final card in KangRules.standardDeck()) {
+      await expectLater(rootBundle.load(card.assetPath), completes);
+    }
   });
 }
