@@ -1,5 +1,4 @@
 import 'package:benjii/modules/developer/view/developer_floating_button.dart';
-import 'package:benjii/util/app_asset_preloader.dart';
 import 'package:benjii/util/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -15,9 +14,7 @@ class App extends StatelessWidget {
       routeInformationParser: Modular.routeInformationParser,
       routerDelegate: Modular.routerDelegate,
       builder: (context, child) {
-        return AppAssetPreloader(
-          child: Stack(children: [?child, const DeveloperFloatingButton()]),
-        );
+        return Stack(children: [?child, const DeveloperFloatingButton()]);
       },
     );
   }

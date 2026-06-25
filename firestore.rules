@@ -56,6 +56,9 @@ service cloud.firestore {
           'lastScrollState',
           'preferences',
         ]);
+
+      allow delete: if signedIn()
+        && request.auth.uid == userId;
     }
 
     match /kang_matches/{matchId} {

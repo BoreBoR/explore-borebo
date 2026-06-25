@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:benjii/modules/home/view/widget/story_page_data.dart';
 import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
@@ -69,11 +71,70 @@ class _MemoryCards extends StatelessWidget {
   }
 }
 
-class _PhotoGallery extends StatelessWidget {
+class _PhotoGallery extends StatefulWidget {
   const _PhotoGallery({required this.captions, required this.imageAssets});
+
+  static const thumbnailCacheWidth = 420;
 
   final List<String> captions;
   final List<String> imageAssets;
+
+  @override
+  State<_PhotoGallery> createState() => _PhotoGalleryState();
+}
+
+class _PhotoGalleryState extends State<_PhotoGallery> {
+  static const _initialVisibleCount = 4;
+  static const _batchSize = 4;
+  static const _batchDelay = Duration(milliseconds: 70);
+
+  Timer? _revealTimer;
+  late int _visibleCount = _limitedCount(_initialVisibleCount);
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleMoreImages();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PhotoGallery oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.imageAssets.length != widget.imageAssets.length) {
+      _revealTimer?.cancel();
+      _visibleCount = _limitedCount(_initialVisibleCount);
+      _scheduleMoreImages();
+    }
+  }
+
+  void _scheduleMoreImages() {
+    if (_visibleCount >= widget.imageAssets.length) {
+      return;
+    }
+    _revealTimer = Timer.periodic(_batchDelay, (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _visibleCount = _limitedCount(_visibleCount + _batchSize);
+      });
+      if (_visibleCount >= widget.imageAssets.length) {
+        timer.cancel();
+      }
+    });
+  }
+
+  int _limitedCount(int value) {
+    final total = widget.imageAssets.length;
+    return value > total ? total : value;
+  }
+
+  @override
+  void dispose() {
+    _revealTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +144,7 @@ class _PhotoGallery extends StatelessWidget {
         key: const ValueKey('photo-gallery'),
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        itemCount: imageAssets.length,
+        itemCount: _visibleCount,
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 12,
@@ -91,8 +152,10 @@ class _PhotoGallery extends StatelessWidget {
           childAspectRatio: 0.92,
         ),
         itemBuilder: (context, index) {
-          final assetPath = imageAssets[index];
-          final caption = index < captions.length ? captions[index] : '';
+          final assetPath = widget.imageAssets[index];
+          final caption = index < widget.captions.length
+              ? widget.captions[index]
+              : '';
 
           return Material(
             color: AppColor.surface.withValues(alpha: 0.96),
@@ -119,7 +182,23 @@ class _PhotoGallery extends StatelessWidget {
                     child: Image.asset(
                       assetPath,
                       fit: BoxFit.cover,
+                      cacheWidth: _PhotoGallery.thumbnailCacheWidth,
                       semanticLabel: caption,
+                      errorBuilder: (context, error, stackTrace) {
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: AppColor.primaryBlueLight.withValues(
+                              alpha: 0.16,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.image_outlined,
+                            color: AppColor.textSecondary.withValues(
+                              alpha: 0.7,
+                            ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                   const DecoratedBox(
@@ -252,36 +331,7 @@ class _LetterNote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 22),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColor.surface.withValues(alpha: 0.86),
-          border: Border.all(color: AppColor.outline.withValues(alpha: 0.72)),
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: AppColor.primaryBlueDark.withValues(alpha: 0.06),
-              blurRadius: 24,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-          child: Text(
-            'You can replace this with the real letter later. The layout already allows the page to scroll when the message becomes longer.',
-            textAlign: TextAlign.center,
-            style: textTheme.bodyLarge?.copyWith(
-              color: AppColor.textSecondary,
-              height: 1.45,
-            ),
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }
 
@@ -325,7 +375,7 @@ class _WishCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'A tiny birthday candle, saved just for your wish.',
+                'เก็บคำอธิษฐานเล็กๆไว้ให้เธอเสมอนะ',
                 textAlign: TextAlign.center,
                 style: textTheme.bodyLarge?.copyWith(height: 1.35),
               ),

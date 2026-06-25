@@ -3,6 +3,7 @@ import 'package:benjii/modules/kang_game/model/kang_multiplayer_match.dart';
 import 'package:benjii/modules/kang_game/repository/kang_multiplayer_repository.dart';
 import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
+import 'package:benjii/util/standard_page_header.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
@@ -92,8 +93,6 @@ class _KangMultiplayerLobbyPageState extends State<KangMultiplayerLobbyPage> {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: AppBackground(
@@ -114,31 +113,14 @@ class _KangMultiplayerLobbyPageState extends State<KangMultiplayerLobbyPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: IconButton.filled(
-                                key: const ValueKey('kang-lobby-back-button'),
-                                tooltip: 'Back',
-                                onPressed: () => Modular.to.navigate('/'),
-                                icon: const Icon(Icons.arrow_back_rounded),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'Kang Multiplayer',
-                              textAlign: TextAlign.center,
-                              style: textTheme.displaySmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              user == null
+                            StandardPageHeader(
+                              title: 'Kang Multiplayer',
+                              subtitle: user == null
                                   ? 'Sign in to create or join a match.'
                                   : 'Signed in as ${_displayName(user)}',
-                              textAlign: TextAlign.center,
-                              style: textTheme.bodyLarge?.copyWith(
-                                color: AppColor.textSecondary,
+                              onBack: () => Modular.to.navigate('/'),
+                              backButtonKey: const ValueKey(
+                                'kang-lobby-back-button',
                               ),
                             ),
                             const SizedBox(height: 24),
