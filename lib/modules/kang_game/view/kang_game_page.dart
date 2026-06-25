@@ -873,6 +873,7 @@ class _DroppedCardsHistoryDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final allDroppedCards = round.discardPile;
     final droppedEntries = [
       for (final player in round.players)
         if ((round.droppedCardsByPlayer[player.id] ?? const <KangCard>[])
@@ -893,6 +894,18 @@ class _DroppedCardsHistoryDialog extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (allDroppedCards.isNotEmpty) ...[
+                Text(
+                  'All dropped (${allDroppedCards.length})',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColor.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _DroppedCardsWrap(cards: allDroppedCards),
+                if (droppedEntries.isNotEmpty) const SizedBox(height: 18),
+              ],
               for (final entry in droppedEntries) ...[
                 Text(
                   '${kangDisplayName(entry.key.name)} (${entry.value.length})',
@@ -902,21 +915,7 @@ class _DroppedCardsHistoryDialog extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final card in entry.value)
-                      _PlayingCard(
-                        card: card,
-                        isEnabled: false,
-                        isSelected: false,
-                        isMatchHint: false,
-                        isLastDrawn: false,
-                        onTap: () {},
-                      ),
-                  ],
-                ),
+                _DroppedCardsWrap(cards: entry.value),
                 if (entry != droppedEntries.last) const SizedBox(height: 18),
               ],
             ],
@@ -929,6 +928,31 @@ class _DroppedCardsHistoryDialog extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),
         ),
+      ],
+    );
+  }
+}
+
+class _DroppedCardsWrap extends StatelessWidget {
+  const _DroppedCardsWrap({required this.cards});
+
+  final List<KangCard> cards;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final card in cards)
+          _PlayingCard(
+            card: card,
+            isEnabled: false,
+            isSelected: false,
+            isMatchHint: false,
+            isLastDrawn: false,
+            onTap: () {},
+          ),
       ],
     );
   }

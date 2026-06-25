@@ -43,12 +43,13 @@ class LocalKangGameController {
             previousPlayers[previousSeats[1].id]?.pendingLossPenaltyPoints ?? 0,
       ),
     ];
+    final startingTurnIndex = _startingTurnIndex(previous, players);
 
     final baseState = KangRoundState(
       players: players,
       drawPile: drawPile,
       discardPile: discardPile,
-      currentTurnIndex: 0,
+      currentTurnIndex: startingTurnIndex,
       roundNumber: previous.roundNumber + 1,
       status: KangRoundStatus.playing,
       turnPhase: KangTurnPhase.start,
@@ -368,6 +369,19 @@ class LocalKangGameController {
 
   int _nextTurnIndex(KangRoundState state) {
     return (state.currentTurnIndex + 1) % state.players.length;
+  }
+
+  int _startingTurnIndex(
+    KangRoundState previous,
+    List<KangPlayerState> players,
+  ) {
+    final winnerId = previous.winnerId;
+    if (winnerId == null) {
+      return 0;
+    }
+
+    final winnerIndex = players.indexWhere((player) => player.id == winnerId);
+    return winnerIndex == -1 ? 0 : winnerIndex;
   }
 
   Map<String, List<KangCard>> _appendDroppedCards(

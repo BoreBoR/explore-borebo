@@ -8,6 +8,49 @@ void main() {
     return KangCard(rank: rank, suit: suit);
   }
 
+  test('previous winner starts the next round', () {
+    final controller = LocalKangGameController();
+    final previous = KangRoundState(
+      players: const [
+        KangPlayerState(id: 'host', name: 'Host', hand: []),
+        KangPlayerState(id: 'guest', name: 'Guest', hand: []),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      status: KangRoundStatus.finished,
+      turnPhase: KangTurnPhase.start,
+      winnerId: 'guest',
+      winReason: KangWinReason.kang,
+    );
+
+    final next = controller.startRound(previous);
+
+    expect(next.currentPlayer?.id, 'guest');
+  });
+
+  test('draw round keeps host starting the next round', () {
+    final controller = LocalKangGameController();
+    final previous = KangRoundState(
+      players: const [
+        KangPlayerState(id: 'host', name: 'Host', hand: []),
+        KangPlayerState(id: 'guest', name: 'Guest', hand: []),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 1,
+      roundNumber: 1,
+      status: KangRoundStatus.finished,
+      turnPhase: KangTurnPhase.start,
+      winReason: KangWinReason.draw,
+    );
+
+    final next = controller.startRound(previous);
+
+    expect(next.currentPlayer?.id, 'host');
+  });
+
   test('dropping a matched rank asks opponent to respond', () {
     final controller = LocalKangGameController();
     final droppedCard = card(KangRank.ace, KangSuit.spades);
@@ -218,6 +261,36 @@ void main() {
 
     expect(next.currentPlayer?.id, 'benji');
     expect(next.discardPile, [droppedCard]);
+  });
+
+  test('same player dropped history appends previous drops', () {
+    final controller = LocalKangGameController();
+    final previousDrop = card(KangRank.three, KangSuit.clubs);
+    final nextDrop = card(KangRank.king, KangSuit.spades);
+    final state = KangRoundState(
+      players: [
+        KangPlayerState(id: 'you', name: 'You', hand: [nextDrop]),
+        KangPlayerState(
+          id: 'benji',
+          name: 'Benji',
+          hand: [card(KangRank.nine, KangSuit.diamonds)],
+        ),
+      ],
+      drawPile: const [],
+      discardPile: [previousDrop],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.drew,
+      droppedCardsByPlayer: {
+        'you': [previousDrop],
+      },
+    );
+
+    final next = controller.dropCard(state, nextDrop);
+
+    expect(next.discardPile, [previousDrop, nextDrop]);
+    expect(next.droppedCardsByPlayer['you'], [previousDrop, nextDrop]);
   });
 
   test('current player can drop multiple same-rank cards', () {

@@ -20,7 +20,12 @@ void main() {
         ),
       ],
       drawPile: const [],
-      discardPile: const [],
+      discardPile: const [
+        KangCard(rank: KangRank.nine, suit: KangSuit.diamonds),
+        KangCard(rank: KangRank.four, suit: KangSuit.spades),
+        KangCard(rank: KangRank.four, suit: KangSuit.hearts),
+        KangCard(rank: KangRank.ace, suit: KangSuit.clubs),
+      ],
       currentTurnIndex: 0,
       roundNumber: 1,
       status: status,
@@ -159,7 +164,12 @@ void main() {
         ),
       ],
       drawPile: const [],
-      discardPile: const [],
+      discardPile: const [
+        KangCard(rank: KangRank.nine, suit: KangSuit.diamonds),
+        KangCard(rank: KangRank.four, suit: KangSuit.spades),
+        KangCard(rank: KangRank.four, suit: KangSuit.hearts),
+        KangCard(rank: KangRank.ace, suit: KangSuit.clubs),
+      ],
       currentTurnIndex: 0,
       roundNumber: 1,
       status: KangRoundStatus.playing,
@@ -201,6 +211,10 @@ void main() {
     final dialog = find.byKey(const ValueKey('kang-dropped-cards-dialog'));
     expect(dialog, findsOneWidget);
     expect(
+      find.descendant(of: dialog, matching: find.text('All dropped (4)')),
+      findsOneWidget,
+    );
+    expect(
       find.descendant(of: dialog, matching: find.text('Y (2)')),
       findsOneWidget,
     );
@@ -208,7 +222,8 @@ void main() {
       find.descendant(of: dialog, matching: find.text('O (1)')),
       findsOneWidget,
     );
-    expect(find.byKey(const ValueKey('kang-card-4S')), findsOneWidget);
-    expect(find.byKey(const ValueKey('kang-card-AC')), findsOneWidget);
+    expect(find.byKey(const ValueKey('kang-card-9D')), findsOneWidget);
+    expect(find.byKey(const ValueKey('kang-card-4S')), findsWidgets);
+    expect(find.byKey(const ValueKey('kang-card-AC')), findsWidgets);
   });
 }
