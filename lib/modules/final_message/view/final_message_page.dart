@@ -10,10 +10,10 @@ class FinalMessagePage extends StatefulWidget {
   const FinalMessagePage({super.key});
 
   static const messages = [
-    'Final message placeholder 1',
-    'Final message placeholder 2',
-    'Final message placeholder 3',
-    'Final message placeholder 4',
+    'แฮปปี้เบิร์ดเดย์ค้าบ',
+    'สู้ๆกับงานน้า เดี๋ยวแรมโบ้สู้ด้วย สู้กับเธอ ถถถถถ',
+    'อยู่ด้วยกับเค้านานๆนะ',
+    'รักเบนจี้ที่สุด',
   ];
 
   @override
@@ -23,17 +23,14 @@ class FinalMessagePage extends StatefulWidget {
 class _FinalMessagePageState extends State<FinalMessagePage> {
   static const _fadeDuration = Duration(milliseconds: 700);
   static const _messageHoldDuration = Duration(milliseconds: 1400);
-  static const _countDelay = Duration(seconds: 1);
 
   final List<Timer> _timers = [];
   int _messageIndex = 0;
-  int _count = 0;
   bool _messageVisible = false;
+  bool _showQuitButton = false;
 
   bool get _isLastMessage =>
       _messageIndex == FinalMessagePage.messages.length - 1;
-
-  bool get _showQuitButton => _count >= 3;
 
   @override
   void initState() {
@@ -64,7 +61,9 @@ class _FinalMessagePageState extends State<FinalMessagePage> {
 
   void _scheduleMessageStep() {
     if (_isLastMessage) {
-      _schedule(_messageHoldDuration, _startCount);
+      _schedule(_messageHoldDuration, () {
+        setState(() => _showQuitButton = true);
+      });
       return;
     }
 
@@ -77,15 +76,6 @@ class _FinalMessagePageState extends State<FinalMessagePage> {
         });
         _scheduleMessageStep();
       });
-    });
-  }
-
-  void _startCount() {
-    _schedule(_countDelay, () {
-      setState(() => _count += 1);
-      if (_count < 3) {
-        _startCount();
-      }
     });
   }
 
@@ -185,24 +175,6 @@ class _FinalMessagePageState extends State<FinalMessagePage> {
                     SizedBox(
                       height: 48,
                       child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: _count == 0
-                            ? const SizedBox.shrink()
-                            : Text(
-                                '$_count',
-                                key: ValueKey('final-message-count-$_count'),
-                                textAlign: TextAlign.center,
-                                style: textTheme.displaySmall?.copyWith(
-                                  color: AppColor.blushDeep,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 48,
-                      child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 700),
                         switchInCurve: Curves.easeOut,
                         child: _showQuitButton
@@ -210,7 +182,7 @@ class _FinalMessagePageState extends State<FinalMessagePage> {
                                 key: const ValueKey('quit-program-button'),
                                 onPressed: _quitProgram,
                                 icon: const Icon(Icons.logout_rounded),
-                                label: const Text('Quit program'),
+                                label: const Text('กลับไปหน้าแรก'),
                               )
                             : const SizedBox.shrink(),
                       ),

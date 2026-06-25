@@ -3,6 +3,7 @@ import 'package:benjii/app_module.dart';
 import 'package:benjii/modules/final_message/view/final_message_page.dart';
 import 'package:benjii/modules/home/bloc/home_bloc.dart';
 import 'package:benjii/modules/home/view/homepage.dart';
+import 'package:benjii/modules/home/view/widget/story_pages.dart';
 import 'package:benjii/modules/landing/controller/pin_gate_controller.dart';
 import 'package:benjii/modules/landing/view/landing_screen.dart';
 import 'package:benjii/modules/timer_together/view/timer_together_page.dart';
@@ -127,7 +128,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('For someone special'), findsOneWidget);
-    expect(find.text('Hi love'), findsNothing);
+    expect(find.text(StoryPages.all[0].title), findsNothing);
   });
 
   testWidgets('benji message mode is coming soon', (WidgetTester tester) async {
@@ -362,21 +363,21 @@ void main() {
   ) async {
     await pumpHomepage(tester);
 
-    expect(find.text('Hi love'), findsOneWidget);
+    expect(find.text(StoryPages.all[0].title), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Happy Birthday'), findsOneWidget);
+    expect(find.text(StoryPages.all[1].title), findsOneWidget);
     expect(find.text('2 / 10'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Things I love about you'), findsOneWidget);
+    expect(find.text(StoryPages.all[2].title), findsOneWidget);
     expect(find.text('3 / 10'), findsOneWidget);
-    expect(find.text('Simply being you.'), findsOneWidget);
+    expect(find.textContaining('ที่รักเอาใจใส่ม๊ากกก'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Little memories I keep'), findsOneWidget);
+    expect(find.text(StoryPages.all[3].title), findsOneWidget);
     expect(find.text('4 / 10'), findsOneWidget);
-    expect(find.text('The first moment: [Add memory here]'), findsOneWidget);
+    expect(find.textContaining('เค้ากลัวเธอด้วยช่วงแรกๆ'), findsOneWidget);
   });
 
   testWidgets('birthday surprise flow reaches all ten story pages', (
@@ -384,16 +385,16 @@ void main() {
   ) async {
     await pumpHomepage(tester);
 
-    expect(find.text('Hi love'), findsOneWidget);
+    expect(find.text(StoryPages.all[0].title), findsOneWidget);
     expect(find.text('1 / 10'), findsOneWidget);
 
     final expectedPages = [
-      ('Happy Birthday', '2 / 10'),
-      ('Things I love about you', '3 / 10'),
-      ('Little memories I keep', '4 / 10'),
-      ('Moments with you', '5 / 10'),
-      ('A small letter for you', '6 / 10'),
-      ('Make a wish', '7 / 10'),
+      (StoryPages.all[1].title, '2 / 10'),
+      (StoryPages.all[2].title, '3 / 10'),
+      (StoryPages.all[3].title, '4 / 10'),
+      (StoryPages.all[4].title, '5 / 10'),
+      (StoryPages.all[5].title, '6 / 10'),
+      (StoryPages.all[6].title, '7 / 10'),
     ];
 
     for (final expected in expectedPages) {
@@ -403,17 +404,17 @@ void main() {
     }
 
     await tapStoryNext(tester);
-    expect(find.text('One more thing'), findsOneWidget);
+    expect(find.text(StoryPages.all[7].title), findsOneWidget);
     expect(find.text('8 / 10'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Happy Birthday, my love'), findsOneWidget);
+    expect(find.text(StoryPages.all[8].title), findsOneWidget);
     expect(find.text('9 / 10'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('Whenever you want to smile again'), findsOneWidget);
+    expect(find.text(StoryPages.all[9].title), findsOneWidget);
     expect(find.text('10 / 10'), findsOneWidget);
-    expect(find.text('Time together'), findsOneWidget);
+    expect(find.text(StoryPages.all[9].buttonLabel), findsOneWidget);
   });
 
   testWidgets('timer together module renders relationship timer', (
@@ -421,11 +422,11 @@ void main() {
   ) async {
     await pumpTimerTogetherPage(tester);
 
-    expect(find.text('Since we became us'), findsOneWidget);
-    expect(find.text('Days'), findsOneWidget);
-    expect(find.text('Hours'), findsOneWidget);
-    expect(find.text('Minutes'), findsOneWidget);
-    expect(find.text('Seconds'), findsOneWidget);
+    expect(find.text('ตั้งแต่เราเป็นเรา'), findsOneWidget);
+    expect(find.text('วัน'), findsOneWidget);
+    expect(find.text('ชั่วโมง'), findsOneWidget);
+    expect(find.text('นาที'), findsOneWidget);
+    expect(find.text('วินาที'), findsOneWidget);
   });
 
   testWidgets('timer together reveals final message button after delay', (
@@ -464,9 +465,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 2220));
     expect(find.text(FinalMessagePage.messages[3]), findsOneWidget);
 
-    await tester.pump(const Duration(milliseconds: 4400));
+    await tester.pump(const Duration(milliseconds: 2200));
     expect(find.text(FinalMessagePage.messages[3]), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
     expect(find.byKey(const ValueKey('quit-program-button')), findsOneWidget);
   });
 
@@ -479,10 +479,14 @@ void main() {
       await tapStoryNext(tester);
     }
 
-    expect(find.text('Moments with you'), findsOneWidget);
-    expect(find.byKey(const ValueKey('photo-gallery')), findsOneWidget);
-    expect(find.byType(Image), findsNWidgets(4));
-    expect(find.text('Golden moments'), findsOneWidget);
+    expect(find.text(StoryPages.all[4].title), findsOneWidget);
+    final gallery = find.byKey(const ValueKey('photo-gallery'));
+    expect(gallery, findsOneWidget);
+    expect(
+      find.descendant(of: gallery, matching: find.byType(Image)),
+      findsNWidgets(StoryPages.all[4].imageAssets.length),
+    );
+    expect(find.text(StoryPages.all[4].items.first), findsOneWidget);
   });
 
   testWidgets('gallery photo opens a zoomable full-screen viewer', (
@@ -521,11 +525,11 @@ void main() {
       await tapStoryNext(tester);
     }
 
-    expect(find.text('Make a wish'), findsOneWidget);
-    expect(find.text('I made one'), findsOneWidget);
+    expect(find.text(StoryPages.all[6].title), findsOneWidget);
+    expect(find.text('ต่อเลย'), findsOneWidget);
 
     await tapStoryNext(tester);
-    expect(find.text('One more thing'), findsOneWidget);
+    expect(find.text(StoryPages.all[7].title), findsOneWidget);
     expect(find.text('8 / 10'), findsOneWidget);
   });
 
@@ -542,7 +546,7 @@ void main() {
       await tapStoryNext(tester);
     }
 
-    expect(find.text('Whenever you want to smile again'), findsOneWidget);
+    expect(find.text(StoryPages.all[9].title), findsOneWidget);
     expect(find.text('10 / 10'), findsOneWidget);
 
     await tapStoryNext(tester);
@@ -600,10 +604,10 @@ void main() {
     );
     expect(find.text('Timer together'), findsOneWidget);
 
-    await tester.tap(find.text('Happy Birthday'));
+    await tester.tap(find.text(StoryPages.all[1].title));
     await tester.pumpAndSettle();
 
-    expect(find.text('Happy Birthday'), findsOneWidget);
+    expect(find.text(StoryPages.all[1].title), findsOneWidget);
     expect(find.text('2 / 10'), findsOneWidget);
   });
 

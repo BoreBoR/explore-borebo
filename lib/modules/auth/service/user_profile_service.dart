@@ -47,4 +47,8 @@ class UserProfileService {
       });
     });
   }
+
+  Future<void> deleteUserProfile(User user) async {
+    await _firestore.collection('users').doc(user.uid).delete();
+  }
 }

@@ -89,7 +89,7 @@ class _TimerTogetherPageState extends State<TimerTogetherPage> {
                     ),
                     const SizedBox(height: 28),
                     Text(
-                      'Since we became us',
+                      'ตั้งแต่เราเป็นเรา',
                       textAlign: TextAlign.center,
                       style: textTheme.displaySmall?.copyWith(
                         color: AppColor.textPrimary,
@@ -98,7 +98,7 @@ class _TimerTogetherPageState extends State<TimerTogetherPage> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Counting every moment since 14 February 2026, 8:00 PM.',
+                      'นับทุกช่วงเวลาตั้งแต่ 14 กุมภาพันธ์ 2026 เวลา 20:00 น.',
                       textAlign: TextAlign.center,
                       style: textTheme.titleMedium?.copyWith(
                         color: AppColor.textSecondary,
@@ -120,7 +120,7 @@ class _TimerTogetherPageState extends State<TimerTogetherPage> {
                                 ),
                                 onPressed: _openFinalMessage,
                                 icon: const Icon(Icons.arrow_forward_rounded),
-                                label: const Text('Continue'),
+                                label: const Text('ไปต่อ'),
                               )
                             : const SizedBox.shrink(),
                       ),
@@ -235,7 +235,7 @@ class _DayCircle extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               Text(
-                'Days',
+                'วัน',
                 textAlign: TextAlign.center,
                 style: textTheme.titleMedium?.copyWith(
                   color: AppColor.textSecondary,
@@ -264,14 +264,14 @@ class _TimeGroup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final numberStyle = Theme.of(context).textTheme.headlineMedium?.copyWith(
-      color: AppColor.primaryBlue,
-      fontWeight: FontWeight.w900,
-      height: 1,
-    );
+          color: AppColor.primaryBlue,
+          fontWeight: FontWeight.w900,
+          height: 1,
+        );
     final labelStyle = Theme.of(context).textTheme.labelMedium?.copyWith(
-      color: AppColor.textSecondary,
-      fontWeight: FontWeight.w700,
-    );
+          color: AppColor.textSecondary,
+          fontWeight: FontWeight.w700,
+        );
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -293,7 +293,7 @@ class _TimeGroup extends StatelessWidget {
             Expanded(
               child: _TimerUnit(
                 value: hours.toString().padLeft(2, '0'),
-                label: 'Hours',
+                label: 'ชั่วโมง',
                 numberStyle: numberStyle,
                 labelStyle: labelStyle,
               ),
@@ -302,7 +302,7 @@ class _TimeGroup extends StatelessWidget {
             Expanded(
               child: _TimerUnit(
                 value: minutes.toString().padLeft(2, '0'),
-                label: 'Minutes',
+                label: 'นาที',
                 numberStyle: numberStyle,
                 labelStyle: labelStyle,
               ),
@@ -311,7 +311,7 @@ class _TimeGroup extends StatelessWidget {
             Expanded(
               child: _TimerUnit(
                 value: seconds.toString().padLeft(2, '0'),
-                label: 'Seconds',
+                label: 'วินาที',
                 numberStyle: numberStyle,
                 labelStyle: labelStyle,
               ),

@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:benjii/util/app_background.dart';
+import 'package:benjii/util/standard_page_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
@@ -40,39 +42,39 @@ class _NumberRandomPageState extends State<NumberRandomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          tooltip: 'Back',
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Modular.to.navigate('/'),
-        ),
-        title: const Text('Number Random'),
-      ),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _NumberBoxes(result: _result, digitCount: _digitCount),
-                  const SizedBox(height: 24),
-                  _DigitSlider(
-                    value: _digitCount,
-                    onChanged: _changeDigitCount,
-                  ),
-                  const SizedBox(height: 28),
-                  FilledButton.icon(
-                    key: const ValueKey('generate-number-button'),
-                    onPressed: _generate,
-                    icon: const Icon(Icons.casino_rounded),
-                    label: const Text('Generate'),
-                  ),
-                  const SizedBox(height: 28),
-                  _HistoryList(history: _history),
-                ],
+      backgroundColor: Colors.transparent,
+      body: AppBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 14, 24, 28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    StandardPageHeader(
+                      title: 'Number Random',
+                      onBack: () => Modular.to.navigate('/'),
+                    ),
+                    const SizedBox(height: 24),
+                    _NumberBoxes(result: _result, digitCount: _digitCount),
+                    const SizedBox(height: 24),
+                    _DigitSlider(
+                      value: _digitCount,
+                      onChanged: _changeDigitCount,
+                    ),
+                    const SizedBox(height: 28),
+                    FilledButton.icon(
+                      key: const ValueKey('generate-number-button'),
+                      onPressed: _generate,
+                      icon: const Icon(Icons.casino_rounded),
+                      label: const Text('Generate'),
+                    ),
+                    const SizedBox(height: 28),
+                    _HistoryList(history: _history),
+                  ],
+                ),
               ),
             ),
           ),

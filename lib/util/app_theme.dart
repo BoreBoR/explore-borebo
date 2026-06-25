@@ -24,6 +24,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      fontFamilyFallback: const ['K2D'],
       scaffoldBackgroundColor: AppColor.background,
       appBarTheme: const AppBarTheme(
         centerTitle: true,

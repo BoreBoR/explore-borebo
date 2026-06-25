@@ -6,6 +6,7 @@ import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
 import 'package:benjii/modules/kang_game/model/kang_rules.dart';
 import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
+import 'package:benjii/util/standard_page_header.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -19,8 +20,9 @@ String kangDisplayName(String name) {
 
   final parts = trimmed.split(RegExp(r'\s+'));
   final firstInitial = parts.first.characters.first.toUpperCase();
-  final lastInitial =
-      parts.length == 1 ? '' : parts.last.characters.first.toUpperCase();
+  final lastInitial = parts.length == 1
+      ? ''
+      : parts.last.characters.first.toUpperCase();
   return '$firstInitial$lastInitial';
 }
 
@@ -208,7 +210,7 @@ class _KangGamePageState extends State<KangGamePage> {
       final body = winner == null
           ? _round.message ?? 'No winner this round.'
           : '${winner.name} wins by $reasonLabel.\n'
-              'Total points: ${winner.gamePoints}';
+                'Total points: ${winner.gamePoints}';
 
       showDialog<void>(
         context: context,
@@ -233,7 +235,8 @@ class _KangGamePageState extends State<KangGamePage> {
   @override
   Widget build(BuildContext context) {
     final showIntro = _round.status == KangRoundStatus.notStarted;
-    final showStartAction = _round.status == KangRoundStatus.notStarted ||
+    final showStartAction =
+        _round.status == KangRoundStatus.notStarted ||
         _round.status == KangRoundStatus.finished;
     final showPlayActions = _round.status == KangRoundStatus.playing;
     final primaryPlayerId = _round.players.any((player) => player.id == 'you')
@@ -279,7 +282,8 @@ class _KangGamePageState extends State<KangGamePage> {
             drawAction: showPlayActions
                 ? FilledButton.tonalIcon(
                     key: const ValueKey('kang-draw-card-button'),
-                    onPressed: _round.status == KangRoundStatus.playing &&
+                    onPressed:
+                        _round.status == KangRoundStatus.playing &&
                             (_round.turnPhase == KangTurnPhase.start ||
                                 _round.turnPhase ==
                                     KangTurnPhase.respondingToDrop)
@@ -293,8 +297,9 @@ class _KangGamePageState extends State<KangGamePage> {
                 ? FilledButton.icon(
                     key: const ValueKey('kang-drop-card-button'),
                     style: kangDropButtonStyle(),
-                    onPressed:
-                        _selectedCards.isEmpty ? null : _dropSelectedCard,
+                    onPressed: _selectedCards.isEmpty
+                        ? null
+                        : _dropSelectedCard,
                     icon: const Icon(Icons.move_down_rounded),
                     label: const Text('Drop'),
                   )
@@ -303,7 +308,8 @@ class _KangGamePageState extends State<KangGamePage> {
                 ? FilledButton.icon(
                     key: const ValueKey('kang-declare-button'),
                     style: kangKangButtonStyle(),
-                    onPressed: _round.status == KangRoundStatus.playing &&
+                    onPressed:
+                        _round.status == KangRoundStatus.playing &&
                             _round.turnPhase == KangTurnPhase.start
                         ? _declareKang
                         : null,
@@ -356,7 +362,6 @@ class KangGameBoard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final primaryPlayer = _primaryPlayer;
     final opponents = round.players
         .where((player) => player.id != primaryPlayer?.id)
@@ -370,41 +375,13 @@ class KangGameBoard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  IconButton.filled(
-                    key: backButtonKey,
-                    tooltip: 'Back',
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back_rounded),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: textTheme.displaySmall?.copyWith(
-                        color: AppColor.textPrimary,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  ...(trailingHeader == null
-                      ? const <Widget>[]
-                      : [trailingHeader!]),
-                ],
+              StandardPageHeader(
+                title: title,
+                subtitle: subtitle,
+                onBack: onBack,
+                backButtonKey: backButtonKey,
+                trailing: trailingHeader,
               ),
-              if (subtitle != null) ...[
-                const SizedBox(height: 10),
-                Text(
-                  subtitle!,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: AppColor.textSecondary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
               const SizedBox(height: 14),
               KangRoundSummary(round: round),
               if (round.players.isEmpty) ...[
@@ -443,7 +420,9 @@ class KangGameBoard extends StatelessWidget {
                   Align(alignment: Alignment.center, child: startAction!)
                 else
                   _KangActionBar(
-                      dropAction: dropAction, kangAction: kangAction),
+                    dropAction: dropAction,
+                    kangAction: kangAction,
+                  ),
               ],
             ],
           ),
@@ -628,9 +607,9 @@ class _KangTableArea extends StatelessWidget {
                   Text(
                     '${round.drawPile.length}',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppColor.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
+                      color: AppColor.textPrimary,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   const _DrawPileCard(),
@@ -677,7 +656,8 @@ class _KangTableArea extends StatelessWidget {
   }
 
   ({List<KangCard> left, List<KangCard> right}) get _droppedCardsBySide {
-    final primaryId = primaryPlayerId ??
+    final primaryId =
+        primaryPlayerId ??
         (round.players.isEmpty ? null : round.players.first.id);
     final opponentId = round.players
         .where((player) => player.id != primaryId)
@@ -794,9 +774,9 @@ class _TableCardSlot extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                color: AppColor.textSecondary,
-                fontWeight: FontWeight.w800,
-              ),
+            color: AppColor.textSecondary,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ],
     );
@@ -811,8 +791,9 @@ class _DroppedCardStack extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final topCard = cards.last;
-    final visibleCards =
-        cards.length > 3 ? cards.sublist(cards.length - 3) : cards;
+    final visibleCards = cards.length > 3
+        ? cards.sublist(cards.length - 3)
+        : cards;
     final sideCards = visibleCards.take(visibleCards.length - 1).toList();
     const cardWidth = 92.0;
     const stackOffset = 12.0;
@@ -1010,7 +991,7 @@ class KangPlayerHandCard extends StatelessWidget {
     final detailLabel = hideCards
         ? '${player.hand.length} cards'
         : 'Hand value: ${KangRules.handValue(player.hand)}'
-            ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
+              ' | Matching ranks: ${matchingRanks.isEmpty ? '-' : matchingRanks.map((rank) => rank.label).join(', ')}';
 
     return _TurnPanelFrame(
       enabled: isCurrent,
@@ -1061,11 +1042,13 @@ class KangPlayerHandCard extends StatelessWidget {
                   else
                     _PlayingCard(
                       card: card,
-                      isEnabled: canDrop &&
+                      isEnabled:
+                          canDrop &&
                           (pendingDroppedCard == null ||
                               card.rank == pendingDroppedCard?.rank),
                       isSelected: selectedCards.contains(card),
-                      isMatchHint: pendingDroppedCard != null &&
+                      isMatchHint:
+                          pendingDroppedCard != null &&
                           card.rank == pendingDroppedCard?.rank,
                       isLastDrawn: lastDrawnCard == card,
                       onTap: () => onCardTap(card),
@@ -1112,7 +1095,6 @@ class _TurnPanelFrame extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      key: key,
       decoration: BoxDecoration(
         color: AppColor.surface.withValues(alpha: 0.96),
         borderRadius: BorderRadius.circular(borderRadius),
@@ -1141,10 +1123,7 @@ class _TurnPanelFrame extends StatelessWidget {
               child: _TurnHeaderBand(
                 enabled: enabled,
                 backgroundColor: headerColor,
-                child: Padding(
-                  padding: contentPadding,
-                  child: headerChild,
-                ),
+                child: Padding(padding: contentPadding, child: headerChild),
               ),
             ),
             if (removeBodyPadding) bodyChild else bodyChild,
@@ -1170,11 +1149,7 @@ class _TurnHeaderBand extends StatelessWidget {
   Widget build(BuildContext context) {
     final bandBackground = ClipPath(
       clipper: const _TurnHeaderDiagonalClipper(),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-        ),
-      ),
+      child: DecoratedBox(decoration: BoxDecoration(color: backgroundColor)),
     );
 
     final bandContent = child;
@@ -1182,10 +1157,7 @@ class _TurnHeaderBand extends StatelessWidget {
     if (!enabled) {
       return Stack(
         fit: StackFit.expand,
-        children: [
-          bandBackground,
-          bandContent,
-        ],
+        children: [bandBackground, bandContent],
       );
     }
 
@@ -1305,12 +1277,12 @@ class _PlayingCard extends StatelessWidget {
     final highlightColor = isSelected
         ? AppColor.blushDeep
         : isMatchHint
-            ? AppColor.warmGold
-            : isLastDrawn
-                ? const Color(0xFF2EAD5F)
-                : isEnabled
-                    ? AppColor.primaryBlue
-                    : AppColor.outline;
+        ? AppColor.warmGold
+        : isLastDrawn
+        ? const Color(0xFF2EAD5F)
+        : isEnabled
+        ? AppColor.primaryBlue
+        : AppColor.outline;
     final hasStrongHighlight = isSelected || isMatchHint || isLastDrawn;
 
     return Material(
@@ -1328,10 +1300,11 @@ class _PlayingCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 boxShadow: [
                   BoxShadow(
-                    color: (isSelected
-                            ? AppColor.blushDeep
-                            : AppColor.primaryBlueDark)
-                        .withValues(alpha: isSelected ? 0.14 : 0.05),
+                    color:
+                        (isSelected
+                                ? AppColor.blushDeep
+                                : AppColor.primaryBlueDark)
+                            .withValues(alpha: isSelected ? 0.14 : 0.05),
                     blurRadius: isSelected ? 16 : 10,
                     offset: Offset(0, isSelected ? 8 : 5),
                   ),
