@@ -101,6 +101,7 @@ class KangRoundState {
     this.pendingDroppedCard,
     this.pendingDropperIndex,
     this.tableDroppedCards = const {},
+    this.droppedCardsByPlayer = const {},
     this.lastDrawnCard,
     this.message,
   });
@@ -129,6 +130,7 @@ class KangRoundState {
   final KangCard? pendingDroppedCard;
   final int? pendingDropperIndex;
   final Map<String, List<KangCard>> tableDroppedCards;
+  final Map<String, List<KangCard>> droppedCardsByPlayer;
   final KangCard? lastDrawnCard;
   final String? message;
 
@@ -154,6 +156,9 @@ class KangRoundState {
 
   KangCard? get discardTop => discardPile.isEmpty ? null : discardPile.last;
 
+  bool get hasPlayerDroppedCards =>
+      droppedCardsByPlayer.values.any((cards) => cards.isNotEmpty);
+
   KangRoundState copyWith({
     List<KangPlayerState>? players,
     List<KangCard>? drawPile,
@@ -167,6 +172,7 @@ class KangRoundState {
     KangCard? pendingDroppedCard,
     int? pendingDropperIndex,
     Map<String, List<KangCard>>? tableDroppedCards,
+    Map<String, List<KangCard>>? droppedCardsByPlayer,
     KangCard? lastDrawnCard,
     String? message,
     bool clearWinner = false,
@@ -193,8 +199,10 @@ class KangRoundState {
       tableDroppedCards: clearTableDroppedCards
           ? const {}
           : tableDroppedCards ?? this.tableDroppedCards,
-      lastDrawnCard:
-          clearLastDrawnCard ? null : lastDrawnCard ?? this.lastDrawnCard,
+      droppedCardsByPlayer: droppedCardsByPlayer ?? this.droppedCardsByPlayer,
+      lastDrawnCard: clearLastDrawnCard
+          ? null
+          : lastDrawnCard ?? this.lastDrawnCard,
       message: message,
     );
   }
@@ -213,6 +221,10 @@ class KangRoundState {
       'pendingDroppedCard': pendingDroppedCard?.toJson(),
       'pendingDropperIndex': pendingDropperIndex,
       'tableDroppedCards': tableDroppedCards.map(
+        (playerId, cards) =>
+            MapEntry(playerId, cards.map((card) => card.toJson()).toList()),
+      ),
+      'droppedCardsByPlayer': droppedCardsByPlayer.map(
         (playerId, cards) =>
             MapEntry(playerId, cards.map((card) => card.toJson()).toList()),
       ),
@@ -271,11 +283,17 @@ class KangRoundState {
       tableDroppedCards:
           ((json['tableDroppedCards'] as Map<Object?, Object?>?) ?? const {})
               .map(
-        (playerId, cards) => MapEntry(
-          playerId! as String,
-          cardsFromJson(cards),
-        ),
-      ),
+                (playerId, cards) =>
+                    MapEntry(playerId! as String, cardsFromJson(cards)),
+              ),
+      droppedCardsByPlayer:
+          ((json['droppedCardsByPlayer'] as Map<Object?, Object?>?) ??
+                  json['tableDroppedCards'] as Map<Object?, Object?>? ??
+                  const {})
+              .map(
+                (playerId, cards) =>
+                    MapEntry(playerId! as String, cardsFromJson(cards)),
+              ),
       lastDrawnCard: nullableCard(json['lastDrawnCard']),
       message: json['message'] as String?,
     );

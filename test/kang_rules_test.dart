@@ -144,6 +144,10 @@ void main() {
         'host': [pendingCard],
         'guest': [card(KangRank.five, KangSuit.hearts)],
       },
+      droppedCardsByPlayer: {
+        'host': [pendingCard],
+        'guest': [card(KangRank.five, KangSuit.hearts)],
+      },
       lastDrawnCard: card(KangRank.king, KangSuit.clubs),
       message: 'Guest must respond.',
     );
@@ -161,6 +165,10 @@ void main() {
     expect(restored.pendingDropperIndex, 0);
     expect(restored.tableDroppedCards['host'], [pendingCard]);
     expect(restored.tableDroppedCards['guest'], [
+      card(KangRank.five, KangSuit.hearts),
+    ]);
+    expect(restored.droppedCardsByPlayer['host'], [pendingCard]);
+    expect(restored.droppedCardsByPlayer['guest'], [
       card(KangRank.five, KangSuit.hearts),
     ]);
     expect(restored.lastDrawnCard, card(KangRank.king, KangSuit.clubs));
