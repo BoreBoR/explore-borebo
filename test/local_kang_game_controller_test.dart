@@ -43,6 +43,9 @@ void main() {
     expect(next.tableDroppedCards, {
       'you': [droppedCard],
     });
+    expect(next.droppedCardsByPlayer, {
+      'you': [droppedCard],
+    });
     expect(next.players[0].hand, isNot(contains(droppedCard)));
     expect(next.players[1].hand, contains(matchingCard));
   });
@@ -76,6 +79,9 @@ void main() {
       tableDroppedCards: {
         'you': [droppedCard],
       },
+      droppedCardsByPlayer: {
+        'you': [droppedCard],
+      },
     );
 
     final next = controller.respondToDroppedCards(state, [
@@ -88,6 +94,10 @@ void main() {
     expect(next.pendingDroppedCard, isNull);
     expect(next.discardPile, [droppedCard, matchingCard, secondMatchingCard]);
     expect(next.tableDroppedCards, {
+      'you': [droppedCard],
+      'benji': [matchingCard, secondMatchingCard],
+    });
+    expect(next.droppedCardsByPlayer, {
       'you': [droppedCard],
       'benji': [matchingCard, secondMatchingCard],
     });
@@ -117,6 +127,9 @@ void main() {
       pendingDroppedCard: droppedCard,
       pendingDropperIndex: 0,
       tableDroppedCards: {
+        'you': [droppedCard],
+      },
+      droppedCardsByPlayer: {
         'you': [droppedCard],
       },
     );
@@ -159,12 +172,19 @@ void main() {
       tableDroppedCards: {
         'you': [firstPlayerDrop],
       },
+      droppedCardsByPlayer: {
+        'you': [firstPlayerDrop],
+      },
     );
 
     final next = controller.dropCard(state, secondPlayerDrop);
 
     expect(next.discardPile, [firstPlayerDrop, secondPlayerDrop]);
     expect(next.tableDroppedCards, {
+      'you': [firstPlayerDrop],
+      'benji': [secondPlayerDrop],
+    });
+    expect(next.droppedCardsByPlayer, {
       'you': [firstPlayerDrop],
       'benji': [secondPlayerDrop],
     });

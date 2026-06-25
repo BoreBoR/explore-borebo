@@ -54,8 +54,9 @@ class LocalKangGameController {
       turnPhase: KangTurnPhase.start,
     );
 
-    final winOutPlayers =
-        players.where((player) => KangRules.hasWinOut(player.hand)).toList();
+    final winOutPlayers = players
+        .where((player) => KangRules.hasWinOut(player.hand))
+        .toList();
     if (winOutPlayers.isEmpty) {
       return baseState.copyWith(
         message: 'Round ${baseState.roundNumber} started.',
@@ -184,6 +185,11 @@ class LocalKangGameController {
             ...state.tableDroppedCards,
             updatedCurrent.id: cards,
           },
+          droppedCardsByPlayer: _appendDroppedCards(
+            state,
+            updatedCurrent.id,
+            cards,
+          ),
           clearLastDrawnCard: true,
         ),
         winnerId: updatedCurrent.id,
@@ -207,7 +213,8 @@ class LocalKangGameController {
       turnPhase = KangTurnPhase.respondingToDrop;
       pendingDroppedCard = cards.first;
       pendingDropperIndex = state.currentTurnIndex;
-      message = '${current.name} dropped $droppedLabels. '
+      message =
+          '${current.name} dropped $droppedLabels. '
           '${opponent.name} has a matching rank. Match it or draw.';
     }
 
@@ -219,6 +226,11 @@ class LocalKangGameController {
       pendingDroppedCard: pendingDroppedCard,
       pendingDropperIndex: pendingDropperIndex,
       tableDroppedCards: {...state.tableDroppedCards, updatedCurrent.id: cards},
+      droppedCardsByPlayer: _appendDroppedCards(
+        state,
+        updatedCurrent.id,
+        cards,
+      ),
       clearPendingDrop: pendingDroppedCard == null,
       clearLastDrawnCard: true,
       message: message,
@@ -281,13 +293,19 @@ class LocalKangGameController {
             ...state.tableDroppedCards,
             updatedCurrent.id: cards,
           },
+          droppedCardsByPlayer: _appendDroppedCards(
+            state,
+            updatedCurrent.id,
+            cards,
+          ),
           clearLastDrawnCard: true,
         ),
         winnerId: updatedCurrent.id,
         reason: KangWinReason.emptyHand,
         pointsOverride: 1,
         winnerPendingLossPenaltyPoints: 2,
-        message: '${updatedCurrent.name} matched every card and wins. '
+        message:
+            '${updatedCurrent.name} matched every card and wins. '
             'If they lose next round, they lose 2 points.',
       );
     }
@@ -298,10 +316,12 @@ class LocalKangGameController {
       currentTurnIndex: pendingDropperIndex,
       turnPhase: KangTurnPhase.start,
       clearPendingDrop: true,
-      tableDroppedCards: {
-        ...state.tableDroppedCards,
-        updatedCurrent.id: cards,
-      },
+      tableDroppedCards: {...state.tableDroppedCards, updatedCurrent.id: cards},
+      droppedCardsByPlayer: _appendDroppedCards(
+        state,
+        updatedCurrent.id,
+        cards,
+      ),
       clearLastDrawnCard: true,
       message:
           '${current.name} matched ${cards.map((card) => card.id).join(', ')}. ${dropper.name} plays again.',
@@ -319,7 +339,8 @@ class LocalKangGameController {
     final players = state.players.map((player) {
       if (player.id == winnerId) {
         return player.copyWith(
-          gamePoints: player.gamePoints +
+          gamePoints:
+              player.gamePoints +
               (pointsOverride ?? KangRules.pointsForWinningHand(player.hand)),
           pendingLossPenaltyPoints: winnerPendingLossPenaltyPoints,
         );
@@ -347,6 +368,20 @@ class LocalKangGameController {
 
   int _nextTurnIndex(KangRoundState state) {
     return (state.currentTurnIndex + 1) % state.players.length;
+  }
+
+  Map<String, List<KangCard>> _appendDroppedCards(
+    KangRoundState state,
+    String playerId,
+    List<KangCard> cards,
+  ) {
+    return {
+      ...state.droppedCardsByPlayer,
+      playerId: [
+        ...(state.droppedCardsByPlayer[playerId] ?? const <KangCard>[]),
+        ...cards,
+      ],
+    };
   }
 
   KangCard? _firstCardOfRank(List<KangCard> cards, KangRank rank) {

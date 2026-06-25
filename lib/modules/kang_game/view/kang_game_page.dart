@@ -404,6 +404,13 @@ class KangGameBoard extends StatelessWidget {
                   drawAction: drawAction,
                 ),
                 const SizedBox(height: 8),
+                if (round.hasPlayerDroppedCards) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _DroppedCardsHistoryButton(round: round),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 if (primaryPlayer != null)
                   KangPlayerHandCard(
                     player: primaryPlayer,
@@ -836,6 +843,93 @@ class _DroppedCardStack extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DroppedCardsHistoryButton extends StatelessWidget {
+  const _DroppedCardsHistoryButton({required this.round});
+
+  final KangRoundState round;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      key: const ValueKey('kang-show-dropped-cards-button'),
+      onPressed: () => showDialog<void>(
+        context: context,
+        builder: (context) => _DroppedCardsHistoryDialog(round: round),
+      ),
+      icon: const Icon(Icons.history_rounded),
+      label: const Text('Dropped cards'),
+    );
+  }
+}
+
+class _DroppedCardsHistoryDialog extends StatelessWidget {
+  const _DroppedCardsHistoryDialog({required this.round});
+
+  final KangRoundState round;
+
+  @override
+  Widget build(BuildContext context) {
+    final droppedEntries = [
+      for (final player in round.players)
+        if ((round.droppedCardsByPlayer[player.id] ?? const <KangCard>[])
+            .isNotEmpty)
+          MapEntry(
+            player,
+            round.droppedCardsByPlayer[player.id] ?? const <KangCard>[],
+          ),
+    ];
+
+    return AlertDialog(
+      key: const ValueKey('kang-dropped-cards-dialog'),
+      title: const Text('Dropped cards'),
+      content: SizedBox(
+        width: 420,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (final entry in droppedEntries) ...[
+                Text(
+                  '${kangDisplayName(entry.key.name)} (${entry.value.length})',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppColor.textPrimary,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final card in entry.value)
+                      _PlayingCard(
+                        card: card,
+                        isEnabled: false,
+                        isSelected: false,
+                        isMatchHint: false,
+                        isLastDrawn: false,
+                        onTap: () {},
+                      ),
+                  ],
+                ),
+                if (entry != droppedEntries.last) const SizedBox(height: 18),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          key: const ValueKey('kang-dropped-cards-close-button'),
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+      ],
     );
   }
 }

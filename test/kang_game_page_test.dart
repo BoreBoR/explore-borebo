@@ -143,4 +143,72 @@ void main() {
 
     expect(find.byKey(const ValueKey('kang-card-AS')), findsNothing);
   });
+
+  testWidgets('shows dropped card history grouped by player', (tester) async {
+    final round = KangRoundState(
+      players: const [
+        KangPlayerState(
+          id: 'you',
+          name: 'You',
+          hand: [KangCard(rank: KangRank.two, suit: KangSuit.hearts)],
+        ),
+        KangPlayerState(
+          id: 'opponent',
+          name: 'Opponent',
+          hand: [KangCard(rank: KangRank.ace, suit: KangSuit.spades)],
+        ),
+      ],
+      drawPile: const [],
+      discardPile: const [],
+      currentTurnIndex: 0,
+      roundNumber: 1,
+      status: KangRoundStatus.playing,
+      turnPhase: KangTurnPhase.start,
+      droppedCardsByPlayer: const {
+        'you': [
+          KangCard(rank: KangRank.four, suit: KangSuit.spades),
+          KangCard(rank: KangRank.four, suit: KangSuit.hearts),
+        ],
+        'opponent': [KangCard(rank: KangRank.ace, suit: KangSuit.clubs)],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: KangGameBoard(
+            title: 'Kang Multiplayer',
+            round: round,
+            primaryPlayerId: 'you',
+            selectedCards: const [],
+            canDropPlayer: (_) => false,
+            hideCardsForPlayer: (player) => player.id != 'you',
+            onCardTap: (_, _) {},
+          ),
+        ),
+      ),
+    );
+
+    final historyButton = find.byKey(
+      const ValueKey('kang-show-dropped-cards-button'),
+    );
+    expect(historyButton, findsOneWidget);
+
+    await tester.ensureVisible(historyButton);
+    await tester.tap(historyButton);
+    await tester.pumpAndSettle();
+
+    final dialog = find.byKey(const ValueKey('kang-dropped-cards-dialog'));
+    expect(dialog, findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.text('Y (2)')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('O (1)')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('kang-card-4S')), findsOneWidget);
+    expect(find.byKey(const ValueKey('kang-card-AC')), findsOneWidget);
+  });
 }
