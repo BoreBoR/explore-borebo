@@ -1323,6 +1323,10 @@ class _PlayingCard extends StatelessWidget {
                           card.assetPath,
                           fit: BoxFit.contain,
                           semanticsLabel: card.id,
+                          placeholderBuilder: (_) =>
+                              _CardFaceFallback(card: card),
+                          errorBuilder: (_, _, _) =>
+                              _CardFaceFallback(card: card),
                         ),
                       ),
                     ),
@@ -1343,6 +1347,56 @@ class _PlayingCard extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _CardFaceFallback extends StatelessWidget {
+  const _CardFaceFallback({required this.card});
+
+  final KangCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = card.suit.isRed ? Colors.red.shade700 : Colors.black;
+
+    return Padding(
+      padding: const EdgeInsets.all(5),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            card.rank.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 16,
+              fontWeight: FontWeight.w900,
+              height: 0.9,
+            ),
+          ),
+          Text(
+            card.suit.label,
+            style: TextStyle(
+              color: color,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              height: 0.9,
+            ),
+          ),
+          const Spacer(),
+          Center(
+            child: Text(
+              card.id,
+              style: TextStyle(
+                color: color,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const Spacer(),
+        ],
       ),
     );
   }

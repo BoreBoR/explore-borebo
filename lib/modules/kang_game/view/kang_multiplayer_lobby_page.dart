@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:benjii/modules/auth/view/google_sign_in_button.dart';
 import 'package:benjii/modules/kang_game/model/kang_multiplayer_match.dart';
 import 'package:benjii/modules/kang_game/repository/kang_multiplayer_repository.dart';
@@ -20,8 +22,34 @@ class KangMultiplayerLobbyPage extends StatefulWidget {
 }
 
 class _KangMultiplayerLobbyPageState extends State<KangMultiplayerLobbyPage> {
+  Timer? _cleanupTimer;
   bool _isCreating = false;
   String? _joiningMatchId;
+
+  @override
+  void initState() {
+    super.initState();
+    _cleanupInactiveMatches();
+    _cleanupTimer = Timer.periodic(
+      const Duration(minutes: 1),
+      (_) => _cleanupInactiveMatches(),
+    );
+  }
+
+  @override
+  void dispose() {
+    _cleanupTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _cleanupInactiveMatches() async {
+    try {
+      await widget.repository.cleanupInactiveMatches();
+    } catch (_) {
+      // Cleanup is best-effort; lobby loading should not fail if permissions
+      // or network state temporarily reject a stale document delete.
+    }
+  }
 
   String _displayName(User user) {
     final name = user.displayName;
