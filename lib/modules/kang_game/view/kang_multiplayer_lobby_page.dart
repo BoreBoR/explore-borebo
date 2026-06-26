@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:benjii/modules/auth/view/google_sign_in_button.dart';
 import 'package:benjii/modules/kang_game/model/kang_multiplayer_match.dart';
 import 'package:benjii/modules/kang_game/repository/kang_multiplayer_repository.dart';
+import 'package:benjii/modules/kang_game/util/kang_multiplayer_error.dart';
 import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
 import 'package:benjii/util/standard_page_header.dart';
@@ -75,8 +76,9 @@ class _KangMultiplayerLobbyPageState extends State<KangMultiplayerLobbyPage> {
         hostName: _displayName(user),
       );
       _openMatch(matchId);
-    } catch (error) {
-      _showMessage(error.toString());
+    } catch (error, stackTrace) {
+      debugKangMultiplayerError('Kang create match', error, stackTrace);
+      _showMessage(kangMultiplayerErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _isCreating = false);
@@ -97,8 +99,9 @@ class _KangMultiplayerLobbyPageState extends State<KangMultiplayerLobbyPage> {
         guestName: _displayName(user),
       );
       _openMatch(match.id);
-    } catch (error) {
-      _showMessage(error.toString());
+    } catch (error, stackTrace) {
+      debugKangMultiplayerError('Kang join match', error, stackTrace);
+      _showMessage(kangMultiplayerErrorMessage(error));
     } finally {
       if (mounted) {
         setState(() => _joiningMatchId = null);
