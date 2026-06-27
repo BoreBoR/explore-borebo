@@ -46,16 +46,24 @@ class _PinWidgetState extends State<PinWidget> {
   String? _validatePin(String? value) {
     final pin = value ?? '';
     if (pin.length != 6) {
-      return 'PIN must be 6 digits';
+      return 'ใส่เลขให้ครบ 6 หลักนะ';
     }
 
     switch (pin) {
       case '140226':
         return null;
+      case '140269':
+        return 'ใกล้ล่ะ ไม่ใช่ของไทย';
       case '123456':
-        return 'Hmm, not that one. Try the day that matters to us.';
+        return 'ไม่ช่ายยย ไม่น่าใช่เลขนี้';
+      case '876456':
+        return 'รหัสโทรศัพท์อันนี้อะ ไม่ใช่เลขนี้';
+      case '020743':
+        return 'ไม่ช่ายเลขนี้ อันนี้วันเกิดเค้า';
+      case '280643':
+        return 'ก็.. ก็ใช่แหละ แต่ที่คิดไว้ไม่ใช่เลขนี้';
       default:
-        return 'Hmm, not that one. Try the day that matters to us.';
+        return 'มะช่ายยย';
     }
   }
 
@@ -182,7 +190,7 @@ class _PinWidgetState extends State<PinWidget> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'For someone special',
+                        'Benji Message',
                         textAlign: TextAlign.center,
                         style: textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w700,
@@ -190,7 +198,7 @@ class _PinWidgetState extends State<PinWidget> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Enter the secret date to open your surprise',
+                        'เดาเลขดู ว่าจะเป็นอะราย',
                         textAlign: TextAlign.center,
                         style: textTheme.bodyLarge?.copyWith(
                           color: colorScheme.onSurfaceVariant,
