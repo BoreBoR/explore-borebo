@@ -6,6 +6,7 @@ import 'package:benjii/modules/home/view/homepage.dart';
 import 'package:benjii/modules/home/view/widget/story_pages.dart';
 import 'package:benjii/modules/landing/controller/pin_gate_controller.dart';
 import 'package:benjii/modules/landing/view/landing_screen.dart';
+import 'package:benjii/modules/mode_select/view/mode_select_page.dart';
 import 'package:benjii/modules/timer_together/view/timer_together_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -101,16 +102,9 @@ void main() {
     expect(find.text('Number Random'), findsOneWidget);
     expect(find.text('Kang Game'), findsOneWidget);
     expect(find.text('Kang Online'), findsOneWidget);
-    expect(find.text('Coming soon'), findsOneWidget);
     expect(
-      tester
-          .getTopLeft(find.byKey(const ValueKey('number-random-mode-button')))
-          .dy,
-      lessThan(
-        tester
-            .getTopLeft(find.byKey(const ValueKey('benji-message-mode-button')))
-            .dy,
-      ),
+      find.byKey(const ValueKey('benji-message-mode-button')),
+      findsNothing,
     );
     expect(
       find.byKey(const ValueKey('developer-floating-button')),
@@ -131,16 +125,32 @@ void main() {
     expect(find.text(StoryPages.all[0].title), findsNothing);
   });
 
-  testWidgets('benji message mode is coming soon', (WidgetTester tester) async {
-    await pumpModularApp(tester);
+  testWidgets('benji message mode is only shown with access', (
+    WidgetTester tester,
+  ) async {
+    await setPhoneSurface(tester);
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ModeSelectPage(canViewBenjiiMessageOverride: false),
+      ),
+    );
 
-    await tester.tap(find.byKey(const ValueKey('benji-message-mode-button')));
+    expect(
+      find.byKey(const ValueKey('benji-message-mode-button')),
+      findsNothing,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ModeSelectPage(canViewBenjiiMessageOverride: true),
+      ),
+    );
     await tester.pumpAndSettle();
 
-    expect(find.text('Choose mode'), findsOneWidget);
-    expect(find.text('Coming soon'), findsOneWidget);
-    expect(find.text('Benji Message'), findsNothing);
-    expect(find.byKey(const ValueKey('pin-display')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('benji-message-mode-button')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('number random mode opens generator', (

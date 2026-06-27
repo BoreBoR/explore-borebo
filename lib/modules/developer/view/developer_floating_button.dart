@@ -133,7 +133,7 @@ class _DeveloperMenu extends StatelessWidget {
               dense: true,
               leading: const Icon(Icons.lock_outline_rounded),
               title: const Text('PIN page'),
-              subtitle: const Text('Open Benji Message PIN'),
+              subtitle: const Text('Open Benjii Message PIN'),
               onTap: () => onNavigate(null),
             ),
             ListTile(
