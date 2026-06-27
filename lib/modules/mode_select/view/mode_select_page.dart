@@ -1,18 +1,22 @@
 import 'package:benjii/modular/kang_game.dart';
 import 'package:benjii/modular/landing.dart';
 import 'package:benjii/modular/number_random.dart';
+import 'package:benjii/modules/auth/service/user_profile_service.dart';
 import 'package:benjii/modules/auth/view/google_sign_in_button.dart';
 import 'package:benjii/modules/home/view/widget/story_pages.dart';
 import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_asset_preloader.dart';
 import 'package:benjii/util/app_color.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
 
-import '../../../modular/home.dart';
-
 class ModeSelectPage extends StatelessWidget {
-  const ModeSelectPage({super.key});
+  const ModeSelectPage({super.key, this.canViewBenjiiMessageOverride});
+
+  final bool? canViewBenjiiMessageOverride;
 
   @override
   Widget build(BuildContext context) {
@@ -98,85 +102,102 @@ class ModeSelectPage extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 32),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              final isNarrow = constraints.maxWidth < 440;
-                              return GridView(
-                                key: const ValueKey('mode-select-grid'),
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: isNarrow ? 1 : 2,
-                                      mainAxisSpacing: 14,
-                                      crossAxisSpacing: 14,
-                                      mainAxisExtent: isNarrow ? 204 : 214,
-                                    ),
-                                children: [
-                                  _ModeButton(
-                                    key: ValueKey('benji-message-mode-button'),
-                                    icon: Icons.favorite_rounded,
-                                    actionIcon: Icons.favorite_border_rounded,
-                                    accentColor: AppColor.blushDeep,
-                                    softColor: AppColor.blush,
-                                    title: 'Benjii',
-                                    subtitle: 'Message for benjii',
-                                    onTap: () {
-                                      Modular.to.navigate(
-                                          LandingPageType.landingScreen.path
-                                      );
-                                    },
-                                  ),
-                                  _ModeButton(
-                                    key: const ValueKey(
-                                      'number-random-mode-button',
-                                    ),
-                                    icon: Icons.casino_rounded,
-                                    actionIcon: Icons.casino_outlined,
-                                    accentColor: AppColor.primaryBlue,
-                                    softColor: AppColor.primaryBlueLight,
-                                    title: 'Number Random',
-                                    subtitle: 'Generate a random number',
-                                    onTap: () {
-                                      Modular.to.navigate(
-                                        NumberRandomPageType.numberRandom.path,
-                                      );
-                                    },
-                                  ),
+                          _BenjiiMessageAccessBuilder(
+                            accessOverride: canViewBenjiiMessageOverride,
+                            builder: (context, canViewBenjiiMessage) {
+                              return LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final isNarrow = constraints.maxWidth < 440;
+                                  return GridView(
+                                    key: const ValueKey('mode-select-grid'),
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: isNarrow ? 1 : 2,
+                                          mainAxisSpacing: 14,
+                                          crossAxisSpacing: 14,
+                                          mainAxisExtent: isNarrow ? 204 : 214,
+                                        ),
+                                    children: [
+                                      if (canViewBenjiiMessage)
+                                        _ModeButton(
+                                          key: const ValueKey(
+                                            'benji-message-mode-button',
+                                          ),
+                                          icon: Icons.favorite_rounded,
+                                          actionIcon:
+                                              Icons.favorite_border_rounded,
+                                          accentColor: AppColor.blushDeep,
+                                          softColor: AppColor.blush,
+                                          title: 'Benjii',
+                                          subtitle: 'Message for benjii',
+                                          onTap: () {
+                                            Modular.to.navigate(
+                                              LandingPageType
+                                                  .landingScreen
+                                                  .path,
+                                            );
+                                          },
+                                        ),
+                                      _ModeButton(
+                                        key: const ValueKey(
+                                          'number-random-mode-button',
+                                        ),
+                                        icon: Icons.casino_rounded,
+                                        actionIcon: Icons.casino_outlined,
+                                        accentColor: AppColor.primaryBlue,
+                                        softColor: AppColor.primaryBlueLight,
+                                        title: 'Number Random',
+                                        subtitle: 'Generate a random number',
+                                        onTap: () {
+                                          Modular.to.navigate(
+                                            NumberRandomPageType
+                                                .numberRandom
+                                                .path,
+                                          );
+                                        },
+                                      ),
 
-                                  _ModeButton(
-                                    key: const ValueKey(
-                                      'kang-game-mode-button',
-                                    ),
-                                    icon: Icons.style_rounded,
-                                    actionIcon: Icons.auto_awesome_rounded,
-                                    accentColor: AppColor.warmGold,
-                                    softColor: const Color(0xFFFFE2A8),
-                                    title: 'Kang Game',
-                                    subtitle: 'Play local Thai Kang rules',
-                                    onTap: () {
-                                      Modular.to.navigate(
-                                        KangGamePageType.kangGame.path,
-                                      );
-                                    },
-                                  ),
-                                  _ModeButton(
-                                    key: const ValueKey(
-                                      'kang-multiplayer-mode-button',
-                                    ),
-                                    icon: Icons.groups_rounded,
-                                    actionIcon: Icons.wifi_tethering_rounded,
-                                    accentColor: const Color(0xFF6F4BD8),
-                                    softColor: AppColor.lilac,
-                                    title: 'Kang Online',
-                                    subtitle: 'Create or join a live match',
-                                    onTap: () {
-                                      Modular.to.navigate(
-                                        KangGamePageType.multiplayerLobby.path,
-                                      );
-                                    },
-                                  ),
-                                ],
+                                      _ModeButton(
+                                        key: const ValueKey(
+                                          'kang-game-mode-button',
+                                        ),
+                                        icon: Icons.style_rounded,
+                                        actionIcon: Icons.auto_awesome_rounded,
+                                        accentColor: AppColor.warmGold,
+                                        softColor: const Color(0xFFFFE2A8),
+                                        title: 'Kang Game',
+                                        subtitle: 'Play local Thai Kang rules',
+                                        onTap: () {
+                                          Modular.to.navigate(
+                                            KangGamePageType.kangGame.path,
+                                          );
+                                        },
+                                      ),
+                                      _ModeButton(
+                                        key: const ValueKey(
+                                          'kang-multiplayer-mode-button',
+                                        ),
+                                        icon: Icons.groups_rounded,
+                                        actionIcon:
+                                            Icons.wifi_tethering_rounded,
+                                        accentColor: const Color(0xFF6F4BD8),
+                                        softColor: AppColor.lilac,
+                                        title: 'Kang Online',
+                                        subtitle: 'Create or join a live match',
+                                        onTap: () {
+                                          Modular.to.navigate(
+                                            KangGamePageType
+                                                .multiplayerLobby
+                                                .path,
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
                             },
                           ),
@@ -195,6 +216,52 @@ class ModeSelectPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _BenjiiMessageAccessBuilder extends StatelessWidget {
+  const _BenjiiMessageAccessBuilder({
+    required this.builder,
+    this.accessOverride,
+  });
+
+  final bool? accessOverride;
+  final Widget Function(BuildContext context, bool canView) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    if (accessOverride case final value?) {
+      return builder(context, value);
+    }
+    if (Firebase.apps.isEmpty) {
+      return builder(context, false);
+    }
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      initialData: FirebaseAuth.instance.currentUser,
+      builder: (context, authSnapshot) {
+        final user = authSnapshot.data;
+        if (user == null) {
+          return builder(context, false);
+        }
+
+        return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .snapshots(),
+          builder: (context, profileSnapshot) {
+            final canView =
+                profileSnapshot.hasData &&
+                UserProfileService.canViewBenjiiMessage(
+                  profileSnapshot.data?.data(),
+                );
+            return builder(context, canView);
+          },
+        );
+      },
     );
   }
 }

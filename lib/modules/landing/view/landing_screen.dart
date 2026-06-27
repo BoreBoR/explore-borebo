@@ -190,7 +190,7 @@ class _PinWidgetState extends State<PinWidget> {
                       ),
                       const SizedBox(height: 20),
                       Text(
-                        'Benji Message',
+                        'Benjii Message',
                         textAlign: TextAlign.center,
                         style: textTheme.displaySmall?.copyWith(
                           fontWeight: FontWeight.w700,

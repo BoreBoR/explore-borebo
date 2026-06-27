@@ -8,6 +8,29 @@ class UserProfileService {
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  static bool canViewBenjiiMessage(
+    Map<String, dynamic>? profile, {
+    DateTime? now,
+  }) {
+    if (profile == null) {
+      return false;
+    }
+
+    final role = profile['role']?.toString().trim().toLowerCase();
+    if (role == 'admin' || role == 'vip') {
+      return true;
+    }
+
+    final vipUntil = profile['vipUntil'];
+    final vipUntilDate = switch (vipUntil) {
+      Timestamp timestamp => timestamp.toDate(),
+      DateTime dateTime => dateTime,
+      _ => null,
+    };
+
+    return vipUntilDate?.isAfter(now ?? DateTime.now()) ?? false;
+  }
+
   Future<void> ensureUserProfile(User user) async {
     final ref = _firestore.collection('users').doc(user.uid);
     final displayName = user.displayName?.trim();
