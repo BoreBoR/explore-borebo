@@ -4,6 +4,7 @@ import 'package:benjii/modules/kang_game/model/kang_card.dart';
 import 'package:benjii/modules/kang_game/model/kang_multiplayer_match.dart';
 import 'package:benjii/modules/kang_game/model/kang_round_state.dart';
 import 'package:benjii/modules/kang_game/repository/kang_multiplayer_repository.dart';
+import 'package:benjii/modules/kang_game/util/kang_multiplayer_error.dart';
 import 'package:benjii/modules/kang_game/view/kang_game_page.dart';
 import 'package:benjii/util/app_background.dart';
 import 'package:benjii/util/app_color.dart';
@@ -54,8 +55,9 @@ class _KangMultiplayerGamePageState extends State<KangMultiplayerGamePage> {
     try {
       await action(user.uid);
       _selectedCards.value = const [];
-    } catch (error) {
-      _showMessage(error.toString());
+    } catch (error, stackTrace) {
+      debugKangMultiplayerError('Kang multiplayer action', error, stackTrace);
+      _showMessage(kangMultiplayerErrorMessage(error));
     } finally {
       _isSubmitting.value = false;
     }

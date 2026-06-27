@@ -1,4 +1,5 @@
 import 'package:benjii/modular/kang_game.dart';
+import 'package:benjii/modular/landing.dart';
 import 'package:benjii/modular/number_random.dart';
 import 'package:benjii/modules/auth/view/google_sign_in_button.dart';
 import 'package:benjii/modules/home/view/widget/story_pages.dart';
@@ -7,6 +8,8 @@ import 'package:benjii/util/app_asset_preloader.dart';
 import 'package:benjii/util/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_modular/flutter_modular.dart';
+
+import '../../../modular/home.dart';
 
 class ModeSelectPage extends StatelessWidget {
   const ModeSelectPage({super.key});
@@ -111,6 +114,20 @@ class ModeSelectPage extends StatelessWidget {
                                     ),
                                 children: [
                                   _ModeButton(
+                                    key: ValueKey('benji-message-mode-button'),
+                                    icon: Icons.favorite_rounded,
+                                    actionIcon: Icons.favorite_border_rounded,
+                                    accentColor: AppColor.blushDeep,
+                                    softColor: AppColor.blush,
+                                    title: 'Benjii',
+                                    subtitle: 'Message for benjii',
+                                    onTap: () {
+                                      Modular.to.navigate(
+                                          LandingPageType.landingScreen.path
+                                      );
+                                    },
+                                  ),
+                                  _ModeButton(
                                     key: const ValueKey(
                                       'number-random-mode-button',
                                     ),
@@ -126,20 +143,7 @@ class ModeSelectPage extends StatelessWidget {
                                       );
                                     },
                                   ),
-                                  _ModeButton(
-                                    key: ValueKey('benji-message-mode-button'),
-                                    icon: Icons.favorite_rounded,
-                                    actionIcon: Icons.favorite_border_rounded,
-                                    accentColor: AppColor.blushDeep,
-                                    softColor: AppColor.blush,
-                                    title: 'Coming soon',
-                                    subtitle: 'Something sweet is waiting',
-                                    onTap: () {
-                                      // Modular.to.navigate(
-                                      //
-                                      // );
-                                    },
-                                  ),
+
                                   _ModeButton(
                                     key: const ValueKey(
                                       'kang-game-mode-button',
